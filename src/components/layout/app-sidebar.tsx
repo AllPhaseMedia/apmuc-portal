@@ -12,6 +12,7 @@ import {
   FileText,
   Package,
   Settings,
+  UserCog,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 
@@ -40,6 +41,7 @@ const icons = {
   FileText,
   Package,
   Settings,
+  UserCog,
 } as const;
 
 const clientNav = [
@@ -49,14 +51,24 @@ const clientNav = [
   { label: "Knowledge Base", href: "/knowledge-base", icon: "BookOpen" },
 ] as const;
 
-const adminNav = [
+const staffNav = [
   { label: "Overview", href: "/admin", icon: "BarChart3" },
   { label: "Clients", href: "/admin/clients", icon: "Users" },
   { label: "Knowledge Base", href: "/admin/knowledge-base", icon: "FileText" },
   { label: "Services", href: "/admin/services", icon: "Package" },
 ] as const;
 
-export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
+// Admin-only nav items (not shown to employees)
+const adminOnlyNav = [
+  { label: "Users", href: "/admin/users", icon: "UserCog" },
+] as const;
+
+type Props = {
+  isStaff: boolean;
+  isAdmin: boolean;
+};
+
+export function AppSidebar({ isStaff, isAdmin }: Props) {
   const pathname = usePathname();
 
   return (
@@ -104,14 +116,14 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {isAdmin && (
+        {isStaff && (
           <>
             <SidebarSeparator />
             <SidebarGroup>
               <SidebarGroupLabel>Admin</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {adminNav.map((item) => {
+                  {staffNav.map((item) => {
                     const Icon = icons[item.icon];
                     const isActive =
                       item.href === "/admin"
@@ -128,6 +140,21 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
                       </SidebarMenuItem>
                     );
                   })}
+                  {isAdmin &&
+                    adminOnlyNav.map((item) => {
+                      const Icon = icons[item.icon];
+                      const isActive = pathname.startsWith(item.href);
+                      return (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                            <Link href={item.href}>
+                              <Icon />
+                              <span>{item.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

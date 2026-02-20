@@ -1,27 +1,100 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { cache } from "react";
+
+export type UserRole = "admin" | "employee" | "client";
 
 export type AuthUser = {
   clerkUserId: string;
   email: string;
   name: string;
+  role: UserRole;
   isAdmin: boolean;
+  isEmployee: boolean;
+  isStaff: boolean; // admin OR employee
+  impersonating?: {
+    clerkUserId: string;
+    email: string;
+    name: string;
+    role: UserRole;
+  };
 };
 
-export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
+const IMPERSONATE_COOKIE = "apmuc_impersonate";
+
+function resolveRole(publicMetadata: Record<string, unknown>): UserRole {
+  const role = publicMetadata?.role as string | undefined;
+  if (role === "admin") return "admin";
+  if (role === "employee") return "employee";
+  return "client";
+}
+
+/**
+ * Get the real authenticated user (ignoring impersonation).
+ * Use this for permission checks on who is actually logged in.
+ */
+export const getRealAuthUser = cache(async (): Promise<AuthUser | null> => {
   const { userId } = await auth();
   if (!userId) return null;
 
   const user = await currentUser();
   if (!user) return null;
 
+  const role = resolveRole(user.publicMetadata as Record<string, unknown>);
+
   return {
     clerkUserId: userId,
     email: user.emailAddresses[0]?.emailAddress ?? "",
     name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
-    isAdmin:
-      (user.publicMetadata as { role?: string })?.role === "admin",
+    role,
+    isAdmin: role === "admin",
+    isEmployee: role === "employee",
+    isStaff: role === "admin" || role === "employee",
   };
+});
+
+/**
+ * Get the effective user — if admin is impersonating someone,
+ * returns the impersonated user's context for data access,
+ * but preserves the real user info in `impersonating`.
+ */
+export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
+  const realUser = await getRealAuthUser();
+  if (!realUser) return null;
+
+  // Only admins can impersonate
+  if (!realUser.isAdmin) return realUser;
+
+  const cookieStore = await cookies();
+  const impersonateId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
+  if (!impersonateId || impersonateId === realUser.clerkUserId) return realUser;
+
+  try {
+    const clerk = await clerkClient();
+    const impUser = await clerk.users.getUser(impersonateId);
+    const impRole = resolveRole(impUser.publicMetadata as Record<string, unknown>);
+
+    return {
+      // Effective user context (used for data queries)
+      clerkUserId: impUser.id,
+      email: impUser.emailAddresses[0]?.emailAddress ?? "",
+      name: `${impUser.firstName ?? ""} ${impUser.lastName ?? ""}`.trim(),
+      role: impRole,
+      isAdmin: impRole === "admin",
+      isEmployee: impRole === "employee",
+      isStaff: impRole === "admin" || impRole === "employee",
+      // Flag that we're impersonating (real user can still access admin)
+      impersonating: {
+        clerkUserId: impUser.id,
+        email: impUser.emailAddresses[0]?.emailAddress ?? "",
+        name: `${impUser.firstName ?? ""} ${impUser.lastName ?? ""}`.trim(),
+        role: impRole,
+      },
+    };
+  } catch {
+    // If impersonated user not found, clear and return real user
+    return realUser;
+  }
 });
 
 export const requireAuth = cache(async (): Promise<AuthUser> => {
@@ -31,7 +104,16 @@ export const requireAuth = cache(async (): Promise<AuthUser> => {
 });
 
 export const requireAdmin = cache(async (): Promise<AuthUser> => {
-  const user = await requireAuth();
-  if (!user.isAdmin) throw new Error("Forbidden");
-  return user;
+  // Always check the REAL user for admin routes
+  const realUser = await getRealAuthUser();
+  if (!realUser) throw new Error("Unauthorized");
+  if (!realUser.isAdmin) throw new Error("Forbidden");
+  return realUser;
+});
+
+export const requireStaff = cache(async (): Promise<AuthUser> => {
+  const realUser = await getRealAuthUser();
+  if (!realUser) throw new Error("Unauthorized");
+  if (!realUser.isStaff) throw new Error("Forbidden");
+  return realUser;
 });

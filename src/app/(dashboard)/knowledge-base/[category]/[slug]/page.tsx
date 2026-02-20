@@ -1,6 +1,9 @@
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getAuthUser } from "@/lib/auth";
 import { getPublishedArticle } from "@/actions/knowledge-base";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,7 +23,7 @@ type Props = {
 };
 
 export default async function ArticlePage({ params }: Props) {
-  await requireAuth();
+  const user = await requireAuth();
   const { category, slug } = await params;
   const result = await getPublishedArticle(slug);
 
@@ -52,11 +55,21 @@ export default async function ArticlePage({ params }: Props) {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{article.title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Last updated {format(new Date(article.updatedAt), "MMMM d, yyyy")}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{article.title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Last updated {format(new Date(article.updatedAt), "MMMM d, yyyy")}
+          </p>
+        </div>
+        {user.isAdmin && (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/admin/knowledge-base/articles/${article.id}`}>
+              <Pencil className="mr-2 h-3 w-3" />
+              Edit
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>
