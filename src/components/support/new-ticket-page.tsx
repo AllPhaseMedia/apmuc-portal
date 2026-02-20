@@ -178,7 +178,8 @@ export function NewTicketPage({ defaultName, defaultEmail, defaultWebsite }: Pro
             <Textarea
               id="content"
               name="content"
-              rows={20}
+              rows={24}
+              className="min-h-[400px]"
               placeholder="Please describe your issue or request in detail..."
               required
             />

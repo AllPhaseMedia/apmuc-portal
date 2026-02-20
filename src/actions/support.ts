@@ -66,7 +66,7 @@ export async function getTicket(conversationId: number) {
 
     // Verify this conversation belongs to the current user's email
     const client = await getClientEmail();
-    if (!client || conversation.customer.email !== client.email) {
+    if (!client || conversation.customer?.email !== client.email) {
       return { success: false as const, error: "Ticket not found" };
     }
 
