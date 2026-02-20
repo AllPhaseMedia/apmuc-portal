@@ -50,8 +50,10 @@ export function UpsellSection({ services }: Props) {
                     <Button variant="outline" size="sm" asChild>
                       <a
                         href={service.ctaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        {...(!service.ctaUrl.startsWith("mailto:") && {
+                          target: "_blank",
+                          rel: "noopener noreferrer",
+                        })}
                       >
                         {service.ctaLabel}
                         <ArrowRight className="ml-2 h-3 w-3" />
