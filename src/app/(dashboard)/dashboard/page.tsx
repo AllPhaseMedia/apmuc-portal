@@ -2,7 +2,6 @@ import { requireAuth } from "@/lib/auth";
 import { getDashboardData } from "@/actions/dashboard";
 import { BRAND } from "@/lib/constants";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageSpeedCard } from "@/components/dashboard/pagespeed-card";
 import { UptimeCard } from "@/components/dashboard/uptime-card";
 import { AnalyticsCard } from "@/components/dashboard/analytics-card";
 import { SSLCard } from "@/components/dashboard/ssl-card";
@@ -57,7 +56,6 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <PageSpeedCard siteCheck={siteCheck} websiteUrl={client.websiteUrl} />
         <SSLCard siteCheck={siteCheck} websiteUrl={client.websiteUrl} />
         <UptimeCard
           uptime={uptime}
