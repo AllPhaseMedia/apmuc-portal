@@ -163,16 +163,39 @@ export async function getConversation(conversationId: number) {
   return data as HelpScoutConversation;
 }
 
+export type Attachment = {
+  fileName: string;
+  mimeType: string;
+  data: string; // base64
+};
+
 export async function createConversation(
   customerEmail: string,
   customerName: string,
   subject: string,
-  body: string
+  body: string,
+  attachments?: Attachment[]
 ) {
   if (!isConfigured()) throw new Error("Help Scout not configured");
 
   const [firstName, ...rest] = customerName.split(" ");
   const lastName = rest.join(" ") || "";
+
+  const thread: Record<string, unknown> = {
+    type: "customer",
+    customer: {
+      email: customerEmail,
+    },
+    text: body,
+  };
+
+  if (attachments && attachments.length > 0) {
+    thread.attachments = attachments.map((a) => ({
+      fileName: a.fileName,
+      mimeType: a.mimeType,
+      data: a.data,
+    }));
+  }
 
   return apiPost("/conversations", {
     subject,
@@ -184,15 +207,7 @@ export async function createConversation(
       firstName: firstName || customerEmail,
       lastName,
     },
-    threads: [
-      {
-        type: "customer",
-        customer: {
-          email: customerEmail,
-        },
-        text: body,
-      },
-    ],
+    threads: [thread],
     status: "active",
   });
 }

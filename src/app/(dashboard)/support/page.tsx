@@ -3,8 +3,8 @@ import { getTickets } from "@/actions/support";
 import { isConfigured } from "@/lib/helpscout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { NewTicketForm } from "@/components/support/new-ticket-form";
-import { MessageSquare, Inbox } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, Inbox, Plus } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 
@@ -50,7 +50,12 @@ export default async function SupportPage() {
             <h1 className="text-2xl font-bold tracking-tight">Support</h1>
             <p className="text-muted-foreground">Get help with your services.</p>
           </div>
-          <NewTicketForm />
+          <Button asChild>
+            <Link href="/support/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New Ticket
+            </Link>
+          </Button>
         </div>
         <Card>
           <CardContent className="py-6">
@@ -72,7 +77,12 @@ export default async function SupportPage() {
             {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <NewTicketForm />
+        <Button asChild>
+            <Link href="/support/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New Ticket
+            </Link>
+          </Button>
       </div>
 
       {tickets.length === 0 ? (

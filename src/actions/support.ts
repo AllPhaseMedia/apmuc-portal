@@ -63,9 +63,16 @@ export async function getTicket(conversationId: number) {
   }
 }
 
+export type TicketAttachment = {
+  fileName: string;
+  mimeType: string;
+  data: string; // base64
+};
+
 export async function createTicket(
   subject: string,
-  body: string
+  body: string,
+  attachments?: TicketAttachment[]
 ): Promise<ActionResult<null>> {
   try {
     const client = await getClientEmail();
@@ -77,7 +84,13 @@ export async function createTicket(
       return { success: false, error: "Support system not configured." };
     }
 
-    await helpscout.createConversation(client.email, client.name, subject, body);
+    await helpscout.createConversation(
+      client.email,
+      client.name,
+      subject,
+      body,
+      attachments
+    );
     return { success: true, data: null };
   } catch (error) {
     return {
