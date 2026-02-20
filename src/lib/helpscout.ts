@@ -107,11 +107,17 @@ export type HelpScoutConversation = {
   createdAt: string;
   closedAt: string | null;
   userUpdatedAt: string;
-  customer: {
+  customer?: {
     id: number;
     email: string;
     firstName: string;
     lastName: string;
+  };
+  primaryCustomer?: {
+    id: number;
+    email: string;
+    firstName?: string;
+    lastName?: string;
   };
   tags: { id: number; tag: string }[];
   _embedded?: {
