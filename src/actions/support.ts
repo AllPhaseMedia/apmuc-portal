@@ -1,0 +1,112 @@
+"use server";
+
+import { requireAuth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import * as helpscout from "@/lib/helpscout";
+import type { ActionResult } from "@/types";
+
+async function getClientEmail() {
+  const user = await requireAuth();
+  const client = await prisma.client.findFirst({
+    where: { clerkUserId: user.clerkUserId },
+    select: { email: true, name: true },
+  });
+  return client;
+}
+
+export async function getTickets() {
+  try {
+    const client = await getClientEmail();
+    if (!client) {
+      return { success: false as const, error: "No client record found." };
+    }
+
+    if (!helpscout.isConfigured()) {
+      return { success: false as const, error: "Support system not configured." };
+    }
+
+    const conversations = await helpscout.getConversationsByEmail(client.email);
+    return { success: true as const, data: conversations ?? [] };
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : "Failed to fetch tickets",
+    };
+  }
+}
+
+export async function getTicket(conversationId: number) {
+  try {
+    await requireAuth();
+
+    if (!helpscout.isConfigured()) {
+      return { success: false as const, error: "Support system not configured." };
+    }
+
+    const conversation = await helpscout.getConversation(conversationId);
+    if (!conversation) {
+      return { success: false as const, error: "Ticket not found" };
+    }
+
+    // Verify this conversation belongs to the current user's email
+    const client = await getClientEmail();
+    if (!client || conversation.customer.email !== client.email) {
+      return { success: false as const, error: "Ticket not found" };
+    }
+
+    return { success: true as const, data: conversation };
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : "Failed to fetch ticket",
+    };
+  }
+}
+
+export async function createTicket(
+  subject: string,
+  body: string
+): Promise<ActionResult<null>> {
+  try {
+    const client = await getClientEmail();
+    if (!client) {
+      return { success: false, error: "No client record found." };
+    }
+
+    if (!helpscout.isConfigured()) {
+      return { success: false, error: "Support system not configured." };
+    }
+
+    await helpscout.createConversation(client.email, client.name, subject, body);
+    return { success: true, data: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create ticket",
+    };
+  }
+}
+
+export async function replyToTicket(
+  conversationId: number,
+  body: string
+): Promise<ActionResult<null>> {
+  try {
+    const client = await getClientEmail();
+    if (!client) {
+      return { success: false, error: "No client record found." };
+    }
+
+    if (!helpscout.isConfigured()) {
+      return { success: false, error: "Support system not configured." };
+    }
+
+    await helpscout.replyToConversation(conversationId, client.email, body);
+    return { success: true, data: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to send reply",
+    };
+  }
+}
