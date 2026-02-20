@@ -167,7 +167,6 @@ export function NewTicketPage({ defaultName, defaultEmail, defaultWebsite }: Pro
             <Input
               id="website"
               name="website"
-              defaultValue={defaultWebsite}
               placeholder="https://yourwebsite.com"
               required
             />

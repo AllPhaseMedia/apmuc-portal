@@ -121,7 +121,8 @@ export async function createTicket(
 
 export async function replyToTicket(
   conversationId: number,
-  body: string
+  body: string,
+  attachments?: TicketAttachment[]
 ): Promise<ActionResult<null>> {
   try {
     const client = await getClientEmail();
@@ -133,7 +134,7 @@ export async function replyToTicket(
       return { success: false, error: "Support system not configured." };
     }
 
-    await helpscout.replyToConversation(conversationId, client.email, body);
+    await helpscout.replyToConversation(conversationId, client.email, body, attachments);
     return { success: true, data: null };
   } catch (error) {
     return {

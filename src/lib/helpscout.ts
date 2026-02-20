@@ -221,13 +221,24 @@ export async function createConversation(
 export async function replyToConversation(
   conversationId: number,
   customerEmail: string,
-  body: string
+  body: string,
+  attachments?: Attachment[]
 ) {
   if (!isConfigured()) throw new Error("Help Scout not configured");
 
-  return apiPost(`/conversations/${conversationId}/reply`, {
+  const payload: Record<string, unknown> = {
     customer: { email: customerEmail },
     text: body,
     type: "customer",
-  });
+  };
+
+  if (attachments && attachments.length > 0) {
+    payload.attachments = attachments.map((a) => ({
+      fileName: a.fileName,
+      mimeType: a.mimeType,
+      data: a.data,
+    }));
+  }
+
+  return apiPost(`/conversations/${conversationId}/reply`, payload);
 }
