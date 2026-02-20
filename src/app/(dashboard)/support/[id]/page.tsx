@@ -14,6 +14,7 @@ import {
 import { ReplyForm } from "@/components/support/reply-form";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
+import { FileText, ImageIcon, File, Download } from "lucide-react";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   active: "default",
@@ -63,10 +64,10 @@ export default async function TicketDetailPage({ params }: Props) {
   const ticket = result.data;
   const threads = ticket._embedded?.threads ?? [];
 
-  // Filter to customer-visible threads (not internal notes)
-  const visibleThreads = threads.filter(
-    (t) => t.type === "customer" || t.type === "message" || t.type === "reply"
-  );
+  // Filter to customer-visible threads (not internal notes), oldest first
+  const visibleThreads = threads
+    .filter((t) => t.type === "customer" || t.type === "message" || t.type === "reply")
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   return (
     <div className="space-y-6">
@@ -101,6 +102,7 @@ export default async function TicketDetailPage({ params }: Props) {
       <div className="space-y-4">
         {visibleThreads.map((thread) => {
           const isCustomer = thread.createdBy.type === "customer";
+          const attachments = thread._embedded?.attachments ?? thread.attachments ?? [];
           return (
             <Card
               key={thread.id}
@@ -122,6 +124,40 @@ export default async function TicketDetailPage({ params }: Props) {
                   className="prose prose-sm prose-neutral dark:prose-invert max-w-none"
                   dangerouslySetInnerHTML={{ __html: thread.body }}
                 />
+                {attachments.length > 0 && (
+                  <div className="mt-3 space-y-1.5 border-t pt-3">
+                    <p className="text-xs font-medium text-muted-foreground">Attachments</p>
+                    {attachments.map((att) => {
+                      const Icon = att.mimeType.startsWith("image/")
+                        ? ImageIcon
+                        : att.mimeType.includes("pdf") || att.mimeType.includes("document")
+                          ? FileText
+                          : File;
+                      const size = att.size
+                        ? att.size < 1024
+                          ? `${att.size} B`
+                          : att.size < 1024 * 1024
+                            ? `${(att.size / 1024).toFixed(1)} KB`
+                            : `${(att.size / (1024 * 1024)).toFixed(1)} MB`
+                        : "";
+                      const downloadUrl = att._links?.download?.href ?? att._links?.data?.href;
+                      return (
+                        <a
+                          key={att.id}
+                          href={downloadUrl ?? "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 rounded-md border px-3 py-1.5 text-sm hover:bg-muted transition-colors no-underline"
+                        >
+                          <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="flex-1 truncate">{att.filename}</span>
+                          {size && <span className="text-xs text-muted-foreground">{size}</span>}
+                          <Download className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

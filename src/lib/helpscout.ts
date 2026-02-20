@@ -125,6 +125,19 @@ export type HelpScoutConversation = {
   };
 };
 
+export type HelpScoutAttachment = {
+  id: number;
+  filename: string;
+  mimeType: string;
+  size: number;
+  width?: number;
+  height?: number;
+  _links?: {
+    download?: { href: string };
+    data?: { href: string };
+  };
+};
+
 export type HelpScoutThread = {
   id: number;
   type: "customer" | "message" | "reply" | "note" | "lineitem";
@@ -139,6 +152,10 @@ export type HelpScoutThread = {
     last: string;
   };
   source?: { type: string };
+  _embedded?: {
+    attachments?: HelpScoutAttachment[];
+  };
+  attachments?: HelpScoutAttachment[];
 };
 
 // ============================================================
