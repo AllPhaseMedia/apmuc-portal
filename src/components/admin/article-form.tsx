@@ -8,10 +8,10 @@ import { createArticle, updateArticle } from "@/actions/admin/kb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { RichEditor } from "./rich-editor";
 
 type Props = {
   article?: KBArticle;
@@ -24,6 +24,7 @@ export function ArticleForm({ article, categories }: Props) {
   const [status, setStatus] = useState<string>(article?.status ?? "DRAFT");
   const [categoryId, setCategoryId] = useState(article?.categoryId ?? "");
   const [slug, setSlug] = useState(article?.slug ?? "");
+  const [content, setContent] = useState(article?.content ?? "");
 
   function generateSlug(title: string) {
     return title
@@ -43,7 +44,7 @@ export function ArticleForm({ article, categories }: Props) {
       title: formData.get("title") as string,
       slug,
       categoryId,
-      content: formData.get("content") as string,
+      content,
       excerpt: formData.get("excerpt") as string,
       status: status as "DRAFT" | "PUBLISHED" | "ARCHIVED",
     };
@@ -138,18 +139,10 @@ export function ArticleForm({ article, categories }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Content (Markdown)</CardTitle>
+          <CardTitle>Content</CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea
-            id="content"
-            name="content"
-            rows={20}
-            defaultValue={article?.content ?? ""}
-            required
-            className="font-mono text-sm"
-            placeholder="Write your article content in Markdown..."
-          />
+          <RichEditor content={content} onChange={setContent} />
         </CardContent>
       </Card>
 
