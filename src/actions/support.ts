@@ -7,10 +7,26 @@ import type { ActionResult } from "@/types";
 
 async function getClientEmail() {
   const user = await requireAuth();
-  const client = await prisma.client.findFirst({
+  let client = await prisma.client.findFirst({
     where: { clerkUserId: user.clerkUserId },
-    select: { email: true, name: true },
+    select: { id: true, email: true, name: true },
   });
+
+  // Fallback: match by email and link the Clerk user ID
+  if (!client) {
+    client = await prisma.client.findFirst({
+      where: { email: user.email, clerkUserId: null },
+      select: { id: true, email: true, name: true },
+    });
+
+    if (client) {
+      await prisma.client.update({
+        where: { id: client.id },
+        data: { clerkUserId: user.clerkUserId },
+      });
+    }
+  }
+
   return client;
 }
 

@@ -38,7 +38,26 @@ export default async function TicketDetailPage({ params }: Props) {
   const result = await getTicket(conversationId);
 
   if (!result.success) {
-    notFound();
+    return (
+      <div className="space-y-4">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/support">Support</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Ticket</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <Card>
+          <CardContent className="py-6">
+            <p className="text-sm text-muted-foreground">{result.error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const ticket = result.data;
