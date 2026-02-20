@@ -42,7 +42,15 @@ export async function getTickets() {
     }
 
     const conversations = await helpscout.getConversationsByEmail(client.email);
-    return { success: true as const, data: conversations ?? [] };
+    // Filter to only conversations where the client is the customer (not agent)
+    const clientEmail = client.email.toLowerCase();
+    const filtered = (conversations ?? []).filter((c) => {
+      const custEmail = (
+        c.primaryCustomer?.email ?? c.customer?.email ?? ""
+      ).toLowerCase();
+      return custEmail === clientEmail;
+    });
+    return { success: true as const, data: filtered };
   } catch (error) {
     return {
       success: false as const,
@@ -72,10 +80,7 @@ export async function getTicket(conversationId: number) {
       ""
     ).toLowerCase();
     if (!client || conversationEmail !== client.email.toLowerCase()) {
-      return {
-        success: false as const,
-        error: `Debug: conv=${conversationEmail}, client=${client?.email ?? "none"}, pCust=${JSON.stringify(conversation.primaryCustomer)}, cust=${JSON.stringify(conversation.customer)}`,
-      };
+      return { success: false as const, error: "Ticket not found" };
     }
 
     return { success: true as const, data: conversation };
