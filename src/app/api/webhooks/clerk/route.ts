@@ -1,10 +1,7 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
-
-// NOTE: Prisma Client model integration will be added in Phase 3
-// when the database schema is created. For now, this webhook
-// verifies signatures and logs events.
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
@@ -44,15 +41,30 @@ export async function POST(req: Request) {
   if (eventType === "user.created" || eventType === "user.updated") {
     const { id, email_addresses, first_name, last_name } = evt.data;
     const email = email_addresses[0]?.email_address;
+
+    if (!email) {
+      return new Response("No email address", { status: 400 });
+    }
+
     const name = `${first_name ?? ""} ${last_name ?? ""}`.trim() || email;
 
-    console.log(`Clerk webhook: ${eventType} — ${id} (${email}, ${name})`);
+    // Link Clerk user to existing Client record (matched by email)
+    const existingClient = await prisma.client.findUnique({
+      where: { email },
+    });
 
-    // TODO (Phase 3): Link Clerk user to Client record by email
-    // const existingClient = await prisma.client.findUnique({ where: { email } });
-    // if (existingClient) {
-    //   await prisma.client.update({ where: { email }, data: { clerkUserId: id, name } });
-    // }
+    if (existingClient) {
+      await prisma.client.update({
+        where: { email },
+        data: {
+          clerkUserId: id,
+          name,
+        },
+      });
+      console.log(`Clerk webhook: linked ${email} to client ${existingClient.id}`);
+    } else {
+      console.log(`Clerk webhook: ${eventType} — no matching client for ${email}`);
+    }
   }
 
   return new Response("OK", { status: 200 });

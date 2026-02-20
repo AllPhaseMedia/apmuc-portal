@@ -6,3 +6,161 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum ServiceType {
+  HOSTING
+  MAINTENANCE
+  SEO
+  GOOGLE_ADS
+  SOCIAL_MEDIA
+  WEB_DESIGN
+  EMAIL_MARKETING
+  CONTENT_WRITING
+  BRANDING
+  OTHER
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// ============================================================
+// CLIENT MANAGEMENT
+// ============================================================
+
+model Client {
+  id                  String          @id @default(uuid())
+  clerkUserId         String?         @unique
+  email               String          @unique
+  name                String
+  company             String?
+  websiteUrl          String?
+  stripeCustomerId    String?         @unique
+  umamiSiteId         String?
+  uptimeKumaMonitorId String?
+  gaPropertyId        String?
+  searchConsoleUrl    String?
+  isActive            Boolean         @default(true)
+  notes               String?         @db.Text
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  services            ClientService[]
+  siteChecks          SiteCheck[]
+
+  @@index([clerkUserId])
+  @@index([email])
+  @@index([stripeCustomerId])
+}
+
+model ClientService {
+  id        String      @id @default(uuid())
+  clientId  String
+  type      ServiceType
+  label     String?
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, type])
+  @@index([clientId])
+}
+
+// ============================================================
+// CACHED SITE CHECKS (PageSpeed + SSL)
+// ============================================================
+
+model SiteCheck {
+  id                 String    @id @default(uuid())
+  clientId           String
+  url                String
+  performanceScore   Int?
+  accessibilityScore Int?
+  bestPracticesScore Int?
+  seoScore           Int?
+  sslValid           Boolean?
+  sslIssuer          String?
+  sslExpiresAt       DateTime?
+  checkedAt          DateTime  @default(now())
+
+  client             Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([checkedAt])
+}
+
+// ============================================================
+// KNOWLEDGE BASE
+// ============================================================
+
+model KBCategory {
+  id          String      @id @default(uuid())
+  name        String
+  slug        String      @unique
+  description String?
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  articles    KBArticle[]
+}
+
+model KBArticle {
+  id          String          @id @default(uuid())
+  categoryId  String
+  title       String
+  slug        String          @unique
+  content     String          @db.LongText
+  excerpt     String?         @db.Text
+  status      ArticleStatus   @default(DRAFT)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  publishedAt DateTime?
+
+  category    KBCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  feedback    ArticleFeedback[]
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([status])
+}
+
+model ArticleFeedback {
+  id        String    @id @default(uuid())
+  articleId String
+  helpful   Boolean
+  comment   String?   @db.Text
+  clientId  String?
+  createdAt DateTime  @default(now())
+
+  article   KBArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+}
+
+// ============================================================
+// RECOMMENDED SERVICES (Upsell catalog)
+// ============================================================
+
+model RecommendedService {
+  id          String      @id @default(uuid())
+  type        ServiceType
+  title       String
+  description String      @db.Text
+  features    Json        @default("[]")
+  ctaUrl      String?
+  ctaLabel    String      @default("Learn More")
+  sortOrder   Int         @default(0)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
