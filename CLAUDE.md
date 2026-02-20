@@ -7,8 +7,8 @@
 - **Framework**: Next.js 15 (App Router)
 - **Styling**: Tailwind CSS + shadcn/ui (new-york style) + Lucide icons
 - **Auth**: Clerk (admin role via `publicMetadata.role === "admin"`)
-- **Database**: Supabase PostgreSQL + Prisma 6
-- **Hosting**: Vercel
+- **Database**: MySQL (xCloud VPS) + Prisma 6
+- **Hosting**: xCloud VPS (self-hosted, `next start` behind Nginx)
 
 ## Integrations
 - **Stripe** — billing, invoices, customer portal (cancellation disabled)
@@ -29,7 +29,7 @@
 - Server Actions in `src/actions/` for all mutations
 - API Routes only for webhooks (Clerk, Stripe) and cron
 - Integration clients in `src/lib/` with `"server-only"` import guards
-- PageSpeed + SSL results cached in DB, refreshed via Vercel cron every 6h
+- PageSpeed + SSL results cached in DB, refreshed via system cron or node-cron every 6h
 - Help Scout + Stripe queried in real-time (no local cache)
 
 ## Key Patterns
@@ -40,7 +40,7 @@
 - **Admin routes**: `/admin/*` protected by middleware + server action checks
 
 ## Database
-- Prisma 6 with `url`/`directUrl` in schema (NOT Prisma 7)
+- Prisma 6 with MySQL provider (NOT Prisma 7, no `directUrl` needed)
 - Models: Client, ClientService, SiteCheck, KBCategory, KBArticle, ArticleFeedback, RecommendedService
 - See `prisma/schema.prisma` for full schema
 

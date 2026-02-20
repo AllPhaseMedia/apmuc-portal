@@ -11,9 +11,8 @@ Each phase stops for review before proceeding. Phase 1 outputs all environment v
 Gather these before starting. Phases that need each variable are noted.
 
 ```env
-# Phase 1: Database (Supabase PostgreSQL)
-DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
+# Phase 1: Database (MySQL on xCloud VPS)
+DATABASE_URL="mysql://user:password@localhost:3306/apmuc_portal"
 
 # Phase 2: Authentication (Clerk)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
@@ -39,7 +38,7 @@ STRIPE_SECRET_KEY="sk_test_..."
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
 
-# Vercel Cron
+# Cron Secret (for protecting cron endpoint)
 CRON_SECRET="..."
 ```
 
@@ -55,7 +54,7 @@ CRON_SECRET="..."
 3. Install dev deps: `prisma@^6 shadcn tsx`
 4. Init shadcn/ui (new-york style, neutral base, CSS variables)
 5. Install shadcn components: button, card, input, label, dialog, dropdown-menu, avatar, badge, tabs, table, skeleton, separator, sheet, scroll-area, select, textarea, tooltip, sonner, form, checkbox, switch
-6. Init Prisma with postgresql datasource
+6. Init Prisma with MySQL datasource
 7. Create `src/lib/prisma.ts` singleton
 8. Set up `globals.css` with APM|UC brand colors (dark navy, orange accents)
 9. Create `.env` and `.env.example`
@@ -65,7 +64,7 @@ CRON_SECRET="..."
 
 ### Acceptance Criteria
 - `npm run dev` starts without errors
-- `npx prisma db push` connects to Supabase
+- `npx prisma db push` connects to MySQL
 - shadcn components install correctly
 - `.env.example` has all env var placeholders
 
@@ -97,7 +96,7 @@ CRON_SECRET="..."
 
 ## Phase 3: Database Schema
 
-**Goal:** Full schema deployed to Supabase, seed script with test data.
+**Goal:** Full schema deployed to MySQL, seed script with test data.
 
 ### Models
 - `Client` (clerkUserId, email, integrations IDs)
@@ -151,7 +150,7 @@ CRON_SECRET="..."
 6. Build analytics card (visitors, pageviews, bounce rate)
 7. Build SSL card (valid/invalid, expiry, days remaining)
 8. Build upsell section (services client doesn't have)
-9. Create Vercel cron for PageSpeed + SSL refresh
+9. Create cron endpoint for PageSpeed + SSL refresh (called by system cron on VPS)
 10. Handle missing integration IDs gracefully
 
 ---
@@ -165,7 +164,7 @@ CRON_SECRET="..."
 2. Category grid landing page
 3. Article list by category
 4. Article detail page with Markdown rendering
-5. Search (PostgreSQL full-text or LIKE)
+5. Search (MySQL LIKE or FULLTEXT index)
 6. Feedback widget (helpful/not helpful)
 7. Breadcrumb navigation
 

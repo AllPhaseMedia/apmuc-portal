@@ -8,7 +8,7 @@ The **apmuc-portal** is a combined client portal serving hosting and maintenance
 
 The application follows a **server-first** architecture. All external API calls (Stripe, Help Scout, Umami, Uptime Kuma, PageSpeed, SSL checks) happen exclusively on the server side to protect API keys. The client receives pre-rendered data through React Server Components where possible, with targeted client interactivity for forms, filters, and real-time updates.
 
-Authentication is delegated entirely to **Clerk**, which manages user accounts, sessions, and role-based access via public metadata. The local database (Supabase PostgreSQL via Prisma 6) stores client configuration, knowledge base content, and feedback — but never user passwords or session tokens.
+Authentication is delegated entirely to **Clerk**, which manages user accounts, sessions, and role-based access via public metadata. The local database (MySQL on xCloud VPS via Prisma 6) stores client configuration, knowledge base content, and feedback — but never user passwords or session tokens.
 
 ### Architecture Diagram
 
@@ -18,15 +18,12 @@ graph TB
         UI[Next.js App<br/>React Server Components + Client Components]
     end
 
-    subgraph "Vercel Edge/Serverless"
+    subgraph "xCloud VPS"
         MW[Clerk Middleware<br/>Auth + Route Protection]
         RSC[React Server Components]
         API[API Routes / Server Actions]
-        CRON[Vercel Cron Jobs<br/>PageSpeed + SSL refresh]
-    end
-
-    subgraph "Primary Database"
-        DB[(Supabase PostgreSQL<br/>via Prisma 6)]
+        CRON[System Cron<br/>PageSpeed + SSL refresh]
+        DB[(MySQL<br/>via Prisma 6)]
     end
 
     subgraph "Authentication"
@@ -80,11 +77,11 @@ graph TB
 | Decision | Rationale |
 |---|---|
 | **Clerk** instead of NextAuth | Eliminates password management, provides pre-built UI, JWT sessions at edge, webhook sync |
-| **Prisma 6** (not 7) | Standard `@prisma/client` generator, `url`/`directUrl` in schema, no adapter required |
+| **Prisma 6** (not 7) | Standard `@prisma/client` generator, MySQL provider, no adapter required |
 | **Server Actions** for mutations | Type-safe form handling with progressive enhancement |
 | **API Routes** for webhooks only | Stripe/Clerk webhooks and cron endpoints |
 | **React Server Components** for data | Fetch external API data server-side, stream to client, API keys never reach browser |
-| **Cached PageSpeed/SSL in DB** | Checks are slow (2-5s), cached in DB, refreshed via Vercel cron every 6 hours |
+| **Cached PageSpeed/SSL in DB** | Checks are slow (2-5s), cached in DB, refreshed via system cron every 6 hours |
 | **Help Scout REST API** (not widget) | Full conversation management within the portal UI |
 | **Stripe Customer Portal** | Uses Stripe's hosted portal with cancellation disabled |
 
@@ -100,9 +97,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 enum ServiceType {
