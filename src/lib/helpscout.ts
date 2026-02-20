@@ -177,6 +177,7 @@ export async function createConversation(
   return apiPost("/conversations", {
     subject,
     type: "email",
+    autoReply: true,
     mailboxId: Number(MAILBOX_ID),
     customer: {
       email: customerEmail,
