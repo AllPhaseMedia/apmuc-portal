@@ -66,11 +66,16 @@ export async function getTicket(conversationId: number) {
 
     // Verify this conversation belongs to the current user's email
     const client = await getClientEmail();
-    const conversationEmail =
+    const conversationEmail = (
       conversation.primaryCustomer?.email ??
-      conversation.customer?.email;
-    if (!client || conversationEmail !== client.email) {
-      return { success: false as const, error: "Ticket not found" };
+      conversation.customer?.email ??
+      ""
+    ).toLowerCase();
+    if (!client || conversationEmail !== client.email.toLowerCase()) {
+      return {
+        success: false as const,
+        error: `Debug: conv=${conversationEmail}, client=${client?.email ?? "none"}, pCust=${JSON.stringify(conversation.primaryCustomer)}, cust=${JSON.stringify(conversation.customer)}`,
+      };
     }
 
     return { success: true as const, data: conversation };
