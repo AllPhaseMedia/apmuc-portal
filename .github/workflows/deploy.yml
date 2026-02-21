@@ -22,4 +22,4 @@ jobs:
             npm run build
             cp -r .next/static .next/standalone/.next/static
             cp -r public .next/standalone/public
-            sudo env PM2_HOME=/root/.pm2 pm2 restart apmuc-portal --update-env
+            sudo /usr/local/bin/pm2-restart-portal
