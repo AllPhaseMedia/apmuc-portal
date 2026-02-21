@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getForm } from "@/actions/admin/forms";
 import { getSubmissions } from "@/actions/admin/submissions";
 import { SubmissionsTable } from "@/components/admin/submissions-table";
@@ -13,7 +13,7 @@ interface SubmissionsPageProps {
 }
 
 export default async function SubmissionsPage({ params }: SubmissionsPageProps) {
-  await requireAdmin();
+  await requireStaff();
   const { id } = await params;
 
   const [formResult, subsResult] = await Promise.all([

@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { formSchema, type FormValues } from "@/lib/validations";
 import type { ActionResult } from "@/types";
 import type { Form } from "@prisma/client";
 
 export async function getForms(): Promise<ActionResult<(Form & { _count: { submissions: number } })[]>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const forms = await prisma.form.findMany({
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { submissions: true } } },
@@ -22,7 +22,7 @@ export async function getForms(): Promise<ActionResult<(Form & { _count: { submi
 
 export async function getForm(id: string): Promise<ActionResult<Form>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const form = await prisma.form.findUnique({ where: { id } });
     if (!form) return { success: false, error: "Form not found" };
     return { success: true, data: form };
@@ -33,7 +33,7 @@ export async function getForm(id: string): Promise<ActionResult<Form>> {
 
 export async function createForm(values: FormValues): Promise<ActionResult<Form>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = formSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message || "Invalid form data" };
@@ -65,7 +65,7 @@ export async function createForm(values: FormValues): Promise<ActionResult<Form>
 
 export async function updateForm(id: string, values: FormValues): Promise<ActionResult<Form>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = formSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message || "Invalid form data" };
@@ -101,7 +101,7 @@ export async function updateForm(id: string, values: FormValues): Promise<Action
 
 export async function deleteForm(id: string): Promise<ActionResult<null>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await prisma.form.delete({ where: { id } });
     revalidatePath("/admin/forms");
     return { success: true, data: null };

@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getCategories, getArticles } from "@/actions/admin/kb";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export default async function AdminKnowledgeBasePage() {
-  await requireAdmin();
+  await requireStaff();
 
   const [catResult, artResult] = await Promise.all([
     getCategories(),

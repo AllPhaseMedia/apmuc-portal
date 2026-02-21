@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import type { ActionResult } from "@/types";
 import type {
   BrandingSettings,
@@ -32,7 +32,7 @@ export async function getBrandingSettings(): Promise<
   ActionResult<Partial<BrandingSettings>>
 > {
   try {
-    await requireAdmin();
+    await requireStaff();
     const keys = [
       "brandName",
       "brandFullName",
@@ -73,7 +73,7 @@ export async function saveBrandingSettings(
   settings: Partial<BrandingSettings>
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     const keyMap: Record<string, keyof BrandingSettings> = {
       brandName: "name",
@@ -114,7 +114,7 @@ export async function getHomepageSettings(): Promise<
   }>
 > {
   try {
-    await requireAdmin();
+    await requireStaff();
     const keys = [
       "homepageHero",
       "homepageBlocks",
@@ -160,7 +160,7 @@ export async function saveHomepageHero(
   hero: HomepageHero
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await upsertSetting("homepageHero", JSON.stringify(hero));
     return { success: true, data: { message: "Hero section saved" } };
   } catch (error) {
@@ -173,7 +173,7 @@ export async function saveHomepageBlocks(
   blocks: FeatureBlock[]
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await upsertSetting("homepageBlocks", JSON.stringify(blocks));
     return { success: true, data: { message: "Feature blocks saved" } };
   } catch (error) {
@@ -187,7 +187,7 @@ export async function saveHomepageContent(
   html: string
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await upsertSetting(key, html);
     return { success: true, data: { message: "Content saved" } };
   } catch (error) {
@@ -202,7 +202,7 @@ export async function getFooterSettings(): Promise<
   ActionResult<{ content: string; links: FooterLink[] }>
 > {
   try {
-    await requireAdmin();
+    await requireStaff();
     const map = await getSettingMap(["footerContent", "footerLinks"]);
 
     let links: FooterLink[] = [];
@@ -231,7 +231,7 @@ export async function saveFooterContent(
   html: string
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await upsertSetting("footerContent", html);
     return { success: true, data: { message: "Footer content saved" } };
   } catch (error) {
@@ -244,7 +244,7 @@ export async function saveFooterLinks(
   links: FooterLink[]
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await upsertSetting("footerLinks", JSON.stringify(links));
     return { success: true, data: { message: "Footer links saved" } };
   } catch (error) {
@@ -259,7 +259,7 @@ export async function getHeaderSettings(): Promise<
   ActionResult<{ links: HeaderLink[] }>
 > {
   try {
-    await requireAdmin();
+    await requireStaff();
     const map = await getSettingMap(["headerLinks"]);
 
     let links: HeaderLink[] = [];
@@ -285,7 +285,7 @@ export async function saveHeaderLinks(
   links: HeaderLink[]
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await upsertSetting("headerLinks", JSON.stringify(links));
     return { success: true, data: { message: "Header links saved" } };
   } catch (error) {

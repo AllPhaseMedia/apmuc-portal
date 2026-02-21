@@ -51,17 +51,22 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
     orderBy: "-last_sign_in_at",
   });
 
-  return users.map((u) => ({
-    id: u.id,
-    email: u.emailAddresses[0]?.emailAddress ?? "",
-    name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || (u.emailAddresses[0]?.emailAddress ?? "Unknown"),
-    role: (u.publicMetadata as Record<string, string>)?.role ?? "client",
-    imageUrl: u.imageUrl,
-    lastSignInAt: u.lastSignInAt,
-  }));
+  return users.map((u) => {
+    const rawRole = (u.publicMetadata as Record<string, string>)?.role ?? "client";
+    // Normalize legacy "employee" metadata to "team_member"
+    const role = rawRole === "employee" ? "team_member" : rawRole;
+    return {
+      id: u.id,
+      email: u.emailAddresses[0]?.emailAddress ?? "",
+      name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || (u.emailAddresses[0]?.emailAddress ?? "Unknown"),
+      role,
+      imageUrl: u.imageUrl,
+      lastSignInAt: u.lastSignInAt,
+    };
+  });
 }
 
-export async function setUserRole(clerkUserId: string, role: "admin" | "employee" | "client") {
+export async function setUserRole(clerkUserId: string, role: "admin" | "team_member" | "client") {
   await requireAdmin();
 
   const clerk = await clerkClient();

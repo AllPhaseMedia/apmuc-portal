@@ -1,11 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 
 export async function getAdminOverview() {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     const [totalClients, activeClients, totalArticles, publishedArticles] =
       await Promise.all([

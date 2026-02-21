@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import {
   categoryFormSchema,
   articleFormSchema,
@@ -18,7 +18,7 @@ import { revalidatePath } from "next/cache";
 
 export async function getCategories() {
   try {
-    await requireAdmin();
+    await requireStaff();
     const categories = await prisma.kBCategory.findMany({
       orderBy: { sortOrder: "asc" },
       include: { _count: { select: { articles: true } } },
@@ -31,7 +31,7 @@ export async function getCategories() {
 
 export async function createCategory(values: CategoryFormValues): Promise<ActionResult<KBCategory>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = categoryFormSchema.safeParse(values);
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
@@ -48,7 +48,7 @@ export async function createCategory(values: CategoryFormValues): Promise<Action
 
 export async function updateCategory(id: string, values: CategoryFormValues): Promise<ActionResult<KBCategory>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = categoryFormSchema.safeParse(values);
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
@@ -62,7 +62,7 @@ export async function updateCategory(id: string, values: CategoryFormValues): Pr
 
 export async function deleteCategory(id: string): Promise<ActionResult<null>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const articleCount = await prisma.kBArticle.count({ where: { categoryId: id } });
     if (articleCount > 0) {
       return { success: false, error: `Cannot delete: category has ${articleCount} article(s). Move or delete them first.` };
@@ -81,7 +81,7 @@ export async function deleteCategory(id: string): Promise<ActionResult<null>> {
 
 export async function getArticles() {
   try {
-    await requireAdmin();
+    await requireStaff();
     const articles = await prisma.kBArticle.findMany({
       orderBy: { updatedAt: "desc" },
       include: { category: true },
@@ -94,7 +94,7 @@ export async function getArticles() {
 
 export async function getArticle(id: string) {
   try {
-    await requireAdmin();
+    await requireStaff();
     const article = await prisma.kBArticle.findUnique({
       where: { id },
       include: { category: true },
@@ -108,7 +108,7 @@ export async function getArticle(id: string) {
 
 export async function createArticle(values: ArticleFormValues): Promise<ActionResult<KBArticle>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = articleFormSchema.safeParse(values);
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
@@ -138,7 +138,7 @@ export async function createArticle(values: ArticleFormValues): Promise<ActionRe
 
 export async function updateArticle(id: string, values: ArticleFormValues): Promise<ActionResult<KBArticle>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = articleFormSchema.safeParse(values);
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
@@ -172,7 +172,7 @@ export async function updateArticle(id: string, values: ArticleFormValues): Prom
 
 export async function deleteArticle(id: string): Promise<ActionResult<null>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await prisma.kBArticle.delete({ where: { id } });
     revalidatePath("/admin/knowledge-base");
     revalidatePath("/knowledge-base");

@@ -68,12 +68,12 @@ const staffNav = [
   { label: "Knowledge Base", href: "/admin/knowledge-base", icon: "FileText" },
   { label: "Services", href: "/admin/services", icon: "Package" },
   { label: "Forms", href: "/admin/forms", icon: "ClipboardList" },
+  { label: "Settings", href: "/admin/settings", icon: "Settings" },
 ] as const;
 
-// Admin-only nav items (not shown to employees)
+// Admin-only nav items (not shown to team members)
 const adminOnlyNav = [
   { label: "Users", href: "/admin/users", icon: "UserCog" },
-  { label: "Settings", href: "/admin/settings", icon: "Settings" },
 ] as const;
 
 type ClientOption = {

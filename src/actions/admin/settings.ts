@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import type { ActionResult } from "@/types";
 
 export type SmtpSettings = {
@@ -24,7 +24,7 @@ const SMTP_KEYS: (keyof SmtpSettings)[] = [
 
 export async function getSmtpSettings(): Promise<ActionResult<SmtpSettings>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     const rows = await prisma.systemSetting.findMany({
       where: { key: { in: SMTP_KEYS } },
@@ -54,7 +54,7 @@ export async function saveSmtpSettings(
   settings: SmtpSettings
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     for (const key of SMTP_KEYS) {
       await prisma.systemSetting.upsert({
@@ -75,7 +75,7 @@ export async function testSmtpConnection(
   to: string
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     // Dynamic import to get fresh settings
     const { getSmtpTransporter } = await import("@/lib/email");

@@ -1,11 +1,11 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getAdminOverview } from "@/actions/admin/overview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UserCheck, FileText, BookOpen } from "lucide-react";
 import Link from "next/link";
 
 export default async function AdminOverviewPage() {
-  await requireAdmin();
+  await requireStaff();
   const result = await getAdminOverview();
 
   if (!result.success) {

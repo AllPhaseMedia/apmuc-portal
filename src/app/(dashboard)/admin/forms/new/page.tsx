@@ -1,8 +1,8 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { FormBuilder } from "@/components/admin/form-builder";
 
 export default async function NewFormPage() {
-  await requireAdmin();
+  await requireStaff();
 
   return (
     <div className="space-y-6">

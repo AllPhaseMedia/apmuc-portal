@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getArticle, getCategories } from "@/actions/admin/kb";
 import { ArticleForm } from "@/components/admin/article-form";
 import { DeleteArticleButton } from "@/components/admin/delete-article-button";
@@ -9,7 +9,7 @@ type Props = {
 };
 
 export default async function EditArticlePage({ params }: Props) {
-  await requireAdmin();
+  await requireStaff();
   const { id } = await params;
 
   const [articleResult, catResult] = await Promise.all([

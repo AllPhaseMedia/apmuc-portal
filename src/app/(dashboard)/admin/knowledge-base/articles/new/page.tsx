@@ -1,9 +1,9 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getCategories } from "@/actions/admin/kb";
 import { ArticleForm } from "@/components/admin/article-form";
 
 export default async function NewArticlePage() {
-  await requireAdmin();
+  await requireStaff();
   const result = await getCategories();
 
   if (!result.success) {

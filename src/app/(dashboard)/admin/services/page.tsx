@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getRecommendedServices } from "@/actions/admin/services";
 import { getForms } from "@/actions/admin/forms";
 import { SERVICE_TYPE_LABELS } from "@/lib/constants";
@@ -16,7 +16,7 @@ import { Plus } from "lucide-react";
 import { ServiceDialog } from "@/components/admin/service-dialog";
 
 export default async function AdminServicesPage() {
-  await requireAdmin();
+  await requireStaff();
   const [result, formsResult] = await Promise.all([
     getRecommendedServices(),
     getForms(),

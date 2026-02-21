@@ -24,7 +24,7 @@ export function ImpersonationBanner({ userName, userEmail, userRole }: Props) {
       <div className="flex items-center gap-2">
         <Eye className="h-4 w-4" />
         <span>
-          Viewing as <strong>{userName}</strong> ({userEmail}) — {userRole}
+          Viewing as <strong>{userName}</strong> ({userEmail}) — {userRole === "team_member" ? "Team Member" : userRole}
         </span>
       </div>
       <Button

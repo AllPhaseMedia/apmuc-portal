@@ -17,8 +17,14 @@ import { format } from "date-fns";
 
 const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   admin: "default",
-  employee: "secondary",
+  team_member: "secondary",
   client: "outline",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  team_member: "Team Member",
+  client: "Client",
 };
 
 export default async function AdminUsersPage() {

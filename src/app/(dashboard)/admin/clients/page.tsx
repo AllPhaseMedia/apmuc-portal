@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getClients } from "@/actions/admin/clients";
 import { SERVICE_TYPE_LABELS } from "@/lib/constants";
 import Link from "next/link";
@@ -15,7 +15,7 @@ import {
 import { Plus } from "lucide-react";
 
 export default async function AdminClientsPage() {
-  await requireAdmin();
+  await requireStaff();
   const result = await getClients();
 
   if (!result.success) {

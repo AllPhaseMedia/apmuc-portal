@@ -2,7 +2,7 @@ import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { cache } from "react";
 
-export type UserRole = "admin" | "employee" | "client";
+export type UserRole = "admin" | "team_member" | "client";
 
 export type AuthUser = {
   clerkUserId: string;
@@ -10,8 +10,8 @@ export type AuthUser = {
   name: string;
   role: UserRole;
   isAdmin: boolean;
-  isEmployee: boolean;
-  isStaff: boolean; // admin OR employee
+  isTeamMember: boolean;
+  isStaff: boolean; // admin OR team_member
   impersonating?: {
     clerkUserId: string;
     email: string;
@@ -25,7 +25,7 @@ const IMPERSONATE_COOKIE = "apmuc_impersonate";
 function resolveRole(publicMetadata: Record<string, unknown>): UserRole {
   const role = publicMetadata?.role as string | undefined;
   if (role === "admin") return "admin";
-  if (role === "employee") return "employee";
+  if (role === "employee" || role === "team_member") return "team_member";
   return "client";
 }
 
@@ -48,8 +48,8 @@ export const getRealAuthUser = cache(async (): Promise<AuthUser | null> => {
     name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
     role,
     isAdmin: role === "admin",
-    isEmployee: role === "employee",
-    isStaff: role === "admin" || role === "employee",
+    isTeamMember: role === "team_member",
+    isStaff: role === "admin" || role === "team_member",
   };
 });
 
@@ -81,8 +81,8 @@ export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
       name: `${impUser.firstName ?? ""} ${impUser.lastName ?? ""}`.trim(),
       role: impRole,
       isAdmin: impRole === "admin",
-      isEmployee: impRole === "employee",
-      isStaff: impRole === "admin" || impRole === "employee",
+      isTeamMember: impRole === "team_member",
+      isStaff: impRole === "admin" || impRole === "team_member",
       // Flag that we're impersonating (real user can still access admin)
       impersonating: {
         clerkUserId: impUser.id,

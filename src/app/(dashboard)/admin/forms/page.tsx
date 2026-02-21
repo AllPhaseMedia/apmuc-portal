@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getForms } from "@/actions/admin/forms";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { Plus, Pencil, Inbox, Globe, Lock } from "lucide-react";
 import { DeleteFormButton } from "@/components/admin/delete-form-button";
 
 export default async function AdminFormsPage() {
-  await requireAdmin();
+  await requireStaff();
   const result = await getForms();
 
   if (!result.success) {

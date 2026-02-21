@@ -14,8 +14,14 @@ import {
 
 const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   admin: "default",
-  employee: "secondary",
+  team_member: "secondary",
   client: "outline",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  team_member: "Team Member",
+  client: "Client",
 };
 
 type Props = {
@@ -30,13 +36,13 @@ export function RoleSelect({ userId, currentRole, isCurrentUser }: Props) {
   if (isCurrentUser) {
     return (
       <Badge variant={ROLE_VARIANT[currentRole] ?? "outline"}>
-        {currentRole}
+        {ROLE_LABELS[currentRole] ?? currentRole}
       </Badge>
     );
   }
 
   async function onChange(value: string) {
-    const result = await setUserRole(userId, value as "admin" | "employee" | "client");
+    const result = await setUserRole(userId, value as "admin" | "team_member" | "client");
     if (result.success) {
       toast.success("Role updated");
       router.refresh();
@@ -50,7 +56,7 @@ export function RoleSelect({ userId, currentRole, isCurrentUser }: Props) {
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="admin">Admin</SelectItem>
-        <SelectItem value="employee">Employee</SelectItem>
+        <SelectItem value="team_member">Team Member</SelectItem>
         <SelectItem value="client">Client</SelectItem>
       </SelectContent>
     </Select>

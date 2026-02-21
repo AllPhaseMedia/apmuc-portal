@@ -1,8 +1,8 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { ClientForm } from "@/components/admin/client-form";
 
 export default async function NewClientPage() {
-  await requireAdmin();
+  await requireStaff();
 
   return (
     <div className="space-y-6">

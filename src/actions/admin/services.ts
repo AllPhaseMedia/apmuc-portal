@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { serviceFormSchema, type ServiceFormValues } from "@/lib/validations";
 import type { ActionResult } from "@/types";
 import type { RecommendedService } from "@prisma/client";
@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 
 export async function getRecommendedServices() {
   try {
-    await requireAdmin();
+    await requireStaff();
     const services = await prisma.recommendedService.findMany({
       orderBy: { sortOrder: "asc" },
     });
@@ -21,7 +21,7 @@ export async function getRecommendedServices() {
 
 export async function createRecommendedService(values: ServiceFormValues): Promise<ActionResult<RecommendedService>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = serviceFormSchema.safeParse(values);
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
@@ -55,7 +55,7 @@ export async function updateRecommendedService(
   values: ServiceFormValues
 ): Promise<ActionResult<RecommendedService>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = serviceFormSchema.safeParse(values);
     if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
 
@@ -87,7 +87,7 @@ export async function updateRecommendedService(
 
 export async function deleteRecommendedService(id: string): Promise<ActionResult<null>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await prisma.recommendedService.delete({ where: { id } });
     revalidatePath("/admin/services");
     return { success: true, data: null };

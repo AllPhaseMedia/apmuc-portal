@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getClient } from "@/actions/admin/clients";
 import { ClientForm } from "@/components/admin/client-form";
 import { ClientContacts } from "@/components/admin/client-contacts";
@@ -10,7 +10,7 @@ type Props = {
 };
 
 export default async function EditClientPage({ params }: Props) {
-  await requireAdmin();
+  const user = await requireStaff();
   const { id } = await params;
   const result = await getClient(id);
 
@@ -30,7 +30,9 @@ export default async function EditClientPage({ params }: Props) {
         <DeleteClientButton clientId={id} clientName={client.name} />
       </div>
       <ClientForm client={client} />
-      <ClientContacts clientId={id} contacts={client.contacts ?? []} />
+      {user.isAdmin && (
+        <ClientContacts clientId={id} contacts={client.contacts ?? []} />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { clientFormSchema, type ClientFormValues } from "@/lib/validations";
 import type { ActionResult } from "@/types";
 import type { Client, ServiceType } from "@prisma/client";
@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 
 export async function getClients(): Promise<ActionResult<ClientWithServices[]>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const clients = await prisma.client.findMany({
       orderBy: { createdAt: "desc" },
       include: { services: true },
@@ -23,7 +23,7 @@ export async function getClients(): Promise<ActionResult<ClientWithServices[]>> 
 
 export async function getClient(id: string) {
   try {
-    await requireAdmin();
+    await requireStaff();
     const client = await prisma.client.findUnique({
       where: { id },
       include: {
@@ -41,7 +41,7 @@ export async function getClient(id: string) {
 
 export async function createClient(values: ClientFormValues): Promise<ActionResult<Client>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = clientFormSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
@@ -75,7 +75,7 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
 
 export async function updateClient(id: string, values: ClientFormValues): Promise<ActionResult<Client>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = clientFormSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
@@ -108,7 +108,7 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
 
 export async function deleteClient(id: string): Promise<ActionResult<null>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     await prisma.client.update({
       where: { id },
       data: { isActive: false },
@@ -125,7 +125,7 @@ export async function updateClientServices(
   serviceTypes: ServiceType[]
 ): Promise<ActionResult<null>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     // Remove services not in the new list
     await prisma.clientService.deleteMany({

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import type { ActionResult } from "@/types";
 import type { FormSubmission, SubmissionStatus } from "@prisma/client";
 
@@ -11,7 +11,7 @@ export async function getSubmissions(
   options?: { status?: SubmissionStatus; page?: number; perPage?: number }
 ): Promise<ActionResult<{ submissions: FormSubmission[]; total: number }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const page = options?.page || 1;
     const perPage = options?.perPage || 25;
 
@@ -38,7 +38,7 @@ export async function getSubmissions(
 
 export async function getSubmission(id: string): Promise<ActionResult<FormSubmission>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const submission = await prisma.formSubmission.findUnique({ where: { id } });
     if (!submission) return { success: false, error: "Submission not found" };
 
@@ -62,7 +62,7 @@ export async function updateSubmissionStatus(
   status: SubmissionStatus
 ): Promise<ActionResult<number>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const result = await prisma.formSubmission.updateMany({
       where: { id: { in: ids } },
       data: { status },
@@ -75,7 +75,7 @@ export async function updateSubmissionStatus(
 
 export async function deleteSubmissions(ids: string[]): Promise<ActionResult<number>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const result = await prisma.formSubmission.deleteMany({
       where: { id: { in: ids } },
     });
@@ -87,7 +87,7 @@ export async function deleteSubmissions(ids: string[]): Promise<ActionResult<num
 
 export async function exportSubmissionsCsv(formId: string): Promise<ActionResult<string>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     const form = await prisma.form.findUnique({ where: { id: formId } });
     if (!form) return { success: false, error: "Form not found" };

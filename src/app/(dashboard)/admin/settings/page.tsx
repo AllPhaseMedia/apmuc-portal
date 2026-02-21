@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSmtpSettings } from "@/actions/admin/settings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +10,7 @@ import { SmtpSettingsForm } from "@/components/admin/smtp-settings-form";
 import { SupportFormCard } from "@/components/admin/support-form-card";
 
 export default async function AdminSettingsPage() {
-  await requireAdmin();
+  await requireStaff();
 
   const [smtpResult, supportForm] = await Promise.all([
     getSmtpSettings(),

@@ -20,7 +20,7 @@ export default async function DashboardLayout({
       getAccessibleClients(),
     ]);
 
-  // Show admin nav if the REAL user is staff (admin or employee)
+  // Show admin nav if the REAL user is staff (admin or team member)
   const isStaff = realUser?.isStaff ?? false;
   const isAdmin = realUser?.isAdmin ?? false;
   const isImpersonating = !!effectiveUser?.impersonating;

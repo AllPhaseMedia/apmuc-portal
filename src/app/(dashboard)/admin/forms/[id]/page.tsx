@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { getForm } from "@/actions/admin/forms";
 import { FormBuilder } from "@/components/admin/form-builder";
 import { notFound } from "next/navigation";
@@ -8,7 +8,7 @@ interface EditFormPageProps {
 }
 
 export default async function EditFormPage({ params }: EditFormPageProps) {
-  await requireAdmin();
+  await requireStaff();
   const { id } = await params;
   const result = await getForm(id);
 
