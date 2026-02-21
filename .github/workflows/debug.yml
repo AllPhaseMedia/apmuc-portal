@@ -14,25 +14,19 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            echo "=== WHOAMI AND HOME ==="
-            whoami
-            echo $HOME
-            echo "=== PM2 INFO ==="
-            which pm2
-            echo "PM2_HOME=$PM2_HOME"
-            ls -la ~/.pm2/ 2>/dev/null | head -20
-            echo "=== PORT 3000 (no sudo) ==="
-            ss -tln | grep 3000
-            echo "=== ALL PROCESSES FOR THIS USER ==="
-            ps -u $(whoami) -f
-            echo "=== PKILL ALL NODE FOR THIS USER ==="
-            pkill -u $(whoami) -f "node" 2>/dev/null || true
-            sleep 2
-            echo "=== PORT 3000 AFTER PKILL ==="
-            ss -tln | grep 3000 || echo "Port 3000 is FREE"
-            echo "=== TRY PM2 START ==="
-            cd /var/www/new.clientsupport.app
-            pm2 start ecosystem.config.js
-            sleep 3
-            pm2 status
-            pm2 logs apmuc-portal --nostream --lines 10
+            echo "=== CHECK NGINX CONFIG (readable files) ==="
+            cat /etc/nginx/sites-enabled/* 2>/dev/null || true
+            cat /etc/nginx/conf.d/*.conf 2>/dev/null || true
+            echo "=== CHECK /var/www CONTENTS ==="
+            ls -la /var/www/new.clientsupport.app/ 2>/dev/null | head -20
+            echo "=== CHECK XCLOUD CONFIG FILES ==="
+            ls -la /var/www/new.clientsupport.app/.xcloud* 2>/dev/null || true
+            cat /var/www/new.clientsupport.app/.xcloud* 2>/dev/null || true
+            echo "=== CHECK SYSTEMD USER SERVICES ==="
+            systemctl --user list-units --type=service 2>/dev/null || true
+            echo "=== CHECK SUPERVISORD ==="
+            ls /etc/supervisor/conf.d/ 2>/dev/null || true
+            cat /etc/supervisor/conf.d/*clientsupport* 2>/dev/null || true
+            echo "=== PM2 STATUS ==="
+            pm2 delete apmuc-portal 2>/dev/null || true
+            pm2 list
