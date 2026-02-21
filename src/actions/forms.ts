@@ -1,0 +1,128 @@
+"use server";
+
+import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
+import { sendEmail, buildSubmissionEmail, isEmailConfigured } from "@/lib/email";
+import { createConversation } from "@/lib/helpscout";
+import type { ActionResult } from "@/types";
+import type { FormField, FormSettings } from "@/types/forms";
+import { BRAND } from "@/lib/constants";
+
+export async function submitForm(
+  formId: string,
+  data: Record<string, string | string[]>
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    const form = await prisma.form.findUnique({ where: { id: formId } });
+    if (!form || !form.isActive) {
+      return { success: false, error: "Form not found or inactive" };
+    }
+
+    const fields = form.fields as unknown as FormField[];
+    const settings = form.settings as unknown as FormSettings;
+
+    // Validate required fields
+    for (const field of fields) {
+      if (field.required && !field.type.match(/^(heading|divider)$/)) {
+        const value = data[field.id];
+        if (!value || (Array.isArray(value) && value.length === 0) || (typeof value === "string" && value.trim() === "")) {
+          return { success: false, error: `${field.label} is required` };
+        }
+      }
+    }
+
+    // Get client info if logged in (optional for public forms)
+    const user = await getAuthUser().catch(() => null);
+    let clientId: string | undefined;
+    let clientEmail: string | undefined;
+
+    if (user) {
+      const client = await prisma.client.findFirst({
+        where: { clerkUserId: user.clerkUserId },
+      });
+      if (client) {
+        clientId = client.id;
+        clientEmail = client.email;
+      }
+    }
+
+    // Build field label/value pairs for email
+    const labeledFields = fields
+      .filter((f) => !f.type.match(/^(heading|divider)$/))
+      .map((f) => ({
+        label: f.label,
+        value: Array.isArray(data[f.id]) ? (data[f.id] as string[]).join(", ") : (data[f.id] as string) || "",
+      }));
+
+    // Handle Help Scout type
+    if (settings.type === "helpscout") {
+      const emailValue = data[fields.find((f) => f.prefillKey === "email")?.id || ""] as string;
+      const nameValue = data[fields.find((f) => f.prefillKey === "name")?.id || ""] as string;
+      const bodyHtml = labeledFields
+        .map((f) => `<p><strong>${f.label}:</strong> ${f.value}</p>`)
+        .join("");
+
+      await createConversation(
+        emailValue || clientEmail || "unknown@unknown.com",
+        nameValue || "Portal User",
+        `[${form.name}] New Submission`,
+        bodyHtml
+      );
+    }
+
+    // Store in DB
+    if (settings.storeSubmissions) {
+      await prisma.formSubmission.create({
+        data: {
+          formId,
+          data: data as Record<string, unknown>,
+          metadata: {
+            clientId: clientId || null,
+            email: clientEmail || null,
+          },
+        },
+      });
+    }
+
+    // Send email notification
+    if (settings.emailNotification && settings.emailTo && isEmailConfigured()) {
+      const adminUrl = `${BRAND.url}/admin/forms/${formId}/submissions`;
+      const html = buildSubmissionEmail({
+        formName: form.name,
+        fields: labeledFields,
+        submittedAt: new Date(),
+        adminUrl,
+      });
+
+      await sendEmail({
+        to: settings.emailTo,
+        subject: `New submission: ${form.name}`,
+        html,
+      });
+    }
+
+    // Webhook
+    if (settings.webhookUrl) {
+      try {
+        await fetch(settings.webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            formId,
+            formName: form.name,
+            data,
+            submittedAt: new Date().toISOString(),
+            clientId: clientId || null,
+          }),
+        });
+      } catch {
+        console.warn(`[forms] Webhook failed for form ${formId}`);
+      }
+    }
+
+    return { success: true, data: { message: settings.successMessage } };
+  } catch (error) {
+    console.error("[forms] Submit error:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Submission failed" };
+  }
+}
