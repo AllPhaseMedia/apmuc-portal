@@ -1,0 +1,27 @@
+name: Debug VPS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check VPS logs
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            cd /var/www/new.clientsupport.app
+            echo "=== PM2 STATUS ==="
+            pm2 status
+            echo "=== PM2 LOGS (last 50 lines) ==="
+            pm2 logs apmuc-portal --nostream --lines 50
+            echo "=== CHECK STANDALONE FILES ==="
+            ls -la .next/standalone/
+            ls -la .next/standalone/.next/static/ 2>/dev/null || echo "NO .next/static in standalone"
+            ls -la .next/standalone/public/ 2>/dev/null || echo "NO public in standalone"
+            echo "=== NODE VERSION ==="
+            node -v
