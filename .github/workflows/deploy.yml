@@ -17,7 +17,9 @@ jobs:
           script: |
             cd /var/www/new.clientsupport.app
             git pull origin master
+            sed -i 's|NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=.*|NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_bWF4aW11bS1rYXR5ZGlkLTI3LmNsZXJrLmFjY291bnRzLmRldiQ"|' .env
             npm install
+            rm -rf .next
             npm run build
             cp -r .next/static .next/standalone/.next/static
             cp -r public .next/standalone/public
