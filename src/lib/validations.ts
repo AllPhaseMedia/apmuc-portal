@@ -65,3 +65,52 @@ export const serviceFormSchema = z.object({
 });
 
 export type ServiceFormValues = z.infer<typeof serviceFormSchema>;
+
+// ============================================================
+// FORM BUILDER SCHEMAS
+// ============================================================
+
+export const formFieldSchema = z.object({
+  id: z.string(),
+  type: z.enum([
+    "text", "textarea", "email", "phone",
+    "select", "checkbox", "radio", "heading", "divider",
+  ]),
+  label: z.string().min(1, "Label is required"),
+  placeholder: z.string().optional(),
+  required: z.boolean().optional(),
+  options: z.array(z.string()).optional(),
+  width: z.enum(["full", "half"]).optional(),
+  order: z.number(),
+  conditions: z.array(z.object({
+    fieldId: z.string(),
+    operator: z.enum(["equals", "notEquals", "contains", "isEmpty", "isNotEmpty"]),
+    value: z.string().optional(),
+  })).optional(),
+  prefillKey: z.enum(["name", "email", "website", "serviceName"]).optional(),
+});
+
+export const formSettingsSchema = z.object({
+  type: z.enum(["standard", "helpscout"]).default("standard"),
+  emailNotification: z.boolean().default(true),
+  emailTo: z.string().email("Must be a valid email").or(z.literal("")),
+  storeSubmissions: z.boolean().default(true),
+  webhookUrl: z.string().url().nullable().default(null),
+  submitButtonLabel: z.string().min(1).default("Submit"),
+  successMessage: z.string().min(1).default("Thanks! We'll be in touch."),
+  redirectUrl: z.string().url().nullable().default(null),
+});
+
+export const formSchema = z.object({
+  name: z.string().min(1, "Form name is required"),
+  slug: z.string().min(1).regex(/^[a-z0-9-]+$/, "Slug must be lowercase letters, numbers, and hyphens"),
+  description: z.string().optional(),
+  fields: z.array(formFieldSchema),
+  settings: formSettingsSchema,
+  isActive: z.boolean().default(true),
+  isPublic: z.boolean().default(false),
+});
+
+export type FormValues = z.infer<typeof formSchema>;
+export type FormFieldValues = z.infer<typeof formFieldSchema>;
+export type FormSettingsValues = z.infer<typeof formSettingsSchema>;
