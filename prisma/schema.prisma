@@ -30,6 +30,12 @@ enum ArticleStatus {
   ARCHIVED
 }
 
+enum SubmissionStatus {
+  NEW
+  READ
+  ARCHIVED
+}
+
 // ============================================================
 // CLIENT MANAGEMENT
 // ============================================================
@@ -159,8 +165,49 @@ model RecommendedService {
   features    Json        @default("[]")
   ctaUrl      String?
   ctaLabel    String      @default("Learn More")
+  formId      String?
   sortOrder   Int         @default(0)
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+
+  form        Form?       @relation(fields: [formId], references: [id], onDelete: SetNull)
+}
+
+// ============================================================
+// DYNAMIC FORMS
+// ============================================================
+
+model Form {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  fields      Json     @default("[]")
+  settings    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  submissions FormSubmission[]
+  services    RecommendedService[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model FormSubmission {
+  id        String           @id @default(uuid())
+  formId    String
+  data      Json
+  metadata  Json             @default("{}")
+  status    SubmissionStatus @default(NEW)
+  createdAt DateTime         @default(now())
+
+  form      Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@index([status])
+  @@index([createdAt])
 }
