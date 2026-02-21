@@ -24,3 +24,5 @@ export type ArticleWithCategory = KBArticle & {
 export type CategoryWithCount = KBCategory & {
   _count: { articles: number };
 };
+
+export * from "./forms";
