@@ -65,6 +65,18 @@ export async function POST(req: Request) {
     } else {
       console.log(`Clerk webhook: ${eventType} — no matching client for ${email}`);
     }
+
+    // Link to any ClientContact records with matching email
+    const contactsToLink = await prisma.clientContact.findMany({
+      where: { email, clerkUserId: null },
+    });
+    if (contactsToLink.length > 0) {
+      await prisma.clientContact.updateMany({
+        where: { email, clerkUserId: null },
+        data: { clerkUserId: id },
+      });
+      console.log(`Clerk webhook: linked ${email} to ${contactsToLink.length} contact record(s)`);
+    }
   }
 
   return new Response("OK", { status: 200 });

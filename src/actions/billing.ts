@@ -1,28 +1,29 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { resolveClientContext } from "@/lib/client-context";
 import * as stripeLib from "@/lib/stripe";
 import type { ActionResult } from "@/types";
 import { headers } from "next/headers";
 
-async function getStripeCustomerId() {
-  const user = await requireAuth();
-  const client = await prisma.client.findFirst({
-    where: { clerkUserId: user.clerkUserId },
-    select: { stripeCustomerId: true },
-  });
-  return client?.stripeCustomerId ?? null;
-}
-
 export async function getBillingData() {
   try {
-    const customerId = await getStripeCustomerId();
+    await requireAuth();
+
+    const ctx = await resolveClientContext();
+    if (!ctx) {
+      return { success: false as const, error: "No client record found." };
+    }
+
+    if (!ctx.permissions.billing) {
+      return { success: false as const, error: "You don't have permission to view billing." };
+    }
 
     if (!stripeLib.isConfigured()) {
       return { success: false as const, error: "Billing system not configured." };
     }
 
+    const customerId = ctx.client.stripeCustomerId;
     if (!customerId) {
       return { success: false as const, error: "No billing account linked." };
     }
@@ -47,16 +48,21 @@ export async function getBillingData() {
 
 export async function createPortalSession(): Promise<ActionResult<string>> {
   try {
-    const customerId = await getStripeCustomerId();
+    await requireAuth();
 
-    if (!stripeLib.isConfigured() || !customerId) {
+    const ctx = await resolveClientContext();
+    if (!ctx || !ctx.permissions.billing) {
+      return { success: false, error: "Billing not available." };
+    }
+
+    if (!stripeLib.isConfigured() || !ctx.client.stripeCustomerId) {
       return { success: false, error: "Billing not available." };
     }
 
     const headerList = await headers();
     const origin = headerList.get("origin") || "http://localhost:3000";
     const session = await stripeLib.createBillingPortalSession(
-      customerId,
+      ctx.client.stripeCustomerId,
       `${origin}/billing`
     );
 

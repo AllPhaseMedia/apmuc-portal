@@ -2,9 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { resolveClientContext } from "@/lib/client-context";
 import { fetchUptimeStatus, type UptimeResult } from "@/lib/uptime-kuma";
 import { fetchUmamiStats, type UmamiStats } from "@/lib/umami";
 import type { Client, ClientService, SiteCheck, RecommendedService } from "@prisma/client";
+import type { ContactPermissions } from "@/types";
 
 export type DashboardData = {
   client: Client & { services: ClientService[] };
@@ -12,6 +14,7 @@ export type DashboardData = {
   uptime: UptimeResult | null;
   analytics: UmamiStats | null;
   upsellServices: RecommendedService[];
+  permissions: ContactPermissions;
 };
 
 export async function getDashboardData(): Promise<
@@ -19,46 +22,31 @@ export async function getDashboardData(): Promise<
   | { success: false; error: string }
 > {
   try {
-    const user = await requireAuth();
+    await requireAuth();
 
-    let client = await prisma.client.findFirst({
-      where: { clerkUserId: user.clerkUserId },
-      include: {
-        services: true,
-        siteChecks: { orderBy: { checkedAt: "desc" }, take: 1 },
-      },
-    });
-
-    // Fallback: match by email and link the Clerk user ID
-    if (!client) {
-      client = await prisma.client.findFirst({
-        where: { email: user.email, clerkUserId: null },
-        include: {
-          services: true,
-          siteChecks: { orderBy: { checkedAt: "desc" }, take: 1 },
-        },
-      });
-
-      if (client) {
-        await prisma.client.update({
-          where: { id: client.id },
-          data: { clerkUserId: user.clerkUserId },
-        });
-      }
-    }
-
-    if (!client) {
+    const ctx = await resolveClientContext();
+    if (!ctx) {
       return { success: false, error: "No client record found for your account." };
     }
 
-    const siteCheck = client.siteChecks[0] ?? null;
+    const { client, permissions } = ctx;
 
-    // Fetch live data in parallel (uptime + analytics)
+    // Fetch site check
+    const siteChecks = await prisma.siteCheck.findMany({
+      where: { clientId: client.id },
+      orderBy: { checkedAt: "desc" },
+      take: 1,
+    });
+    const siteCheck = siteChecks[0] ?? null;
+
+    // Fetch live data in parallel — only if permissions allow
     const [uptime, analytics] = await Promise.all([
-      client.uptimeKumaMonitorId
+      permissions.uptime && client.uptimeKumaMonitorId
         ? fetchUptimeStatus(client.uptimeKumaMonitorId)
         : null,
-      client.umamiSiteId ? fetchUmamiStats(client.umamiSiteId, "30d") : null,
+      permissions.analytics && client.umamiSiteId
+        ? fetchUmamiStats(client.umamiSiteId, "30d")
+        : null,
     ]);
 
     // Upsell: active recommended services the client doesn't already have
@@ -78,7 +66,7 @@ export async function getDashboardData(): Promise<
 
     return {
       success: true,
-      data: { client, siteCheck, uptime, analytics, upsellServices },
+      data: { client, siteCheck, uptime, analytics, upsellServices, permissions },
     };
   } catch (error) {
     return {

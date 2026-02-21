@@ -44,7 +44,13 @@ export default async function DashboardPage() {
     );
   }
 
-  const { client, siteCheck, uptime, analytics, upsellServices } = result.data;
+  const { client, siteCheck, uptime, analytics, upsellServices, permissions } =
+    result.data;
+
+  const showSiteHealth = permissions.siteHealth;
+  const showUptime = permissions.uptime;
+  const showAnalytics = permissions.analytics;
+  const showAnyCard = showSiteHealth || showUptime || showAnalytics;
 
   return (
     <div className="space-y-6">
@@ -55,17 +61,25 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">{branding.description}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <SSLCard siteCheck={siteCheck} websiteUrl={client.websiteUrl} />
-        <UptimeCard
-          uptime={uptime}
-          configured={!!client.uptimeKumaMonitorId}
-        />
-        <AnalyticsCard
-          analytics={analytics}
-          configured={!!client.umamiSiteId}
-        />
-      </div>
+      {showAnyCard && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {showSiteHealth && (
+            <SSLCard siteCheck={siteCheck} websiteUrl={client.websiteUrl} />
+          )}
+          {showUptime && (
+            <UptimeCard
+              uptime={uptime}
+              configured={!!client.uptimeKumaMonitorId}
+            />
+          )}
+          {showAnalytics && (
+            <AnalyticsCard
+              analytics={analytics}
+              configured={!!client.umamiSiteId}
+            />
+          )}
+        </div>
+      )}
 
       {upsellServices.length > 0 && (
         <>

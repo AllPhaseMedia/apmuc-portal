@@ -18,6 +18,8 @@ import {
 import { UserButton } from "@clerk/nextjs";
 
 import { BrandLogo } from "@/components/branding/brand-logo";
+import { ClientSwitcher } from "@/components/layout/client-switcher";
+import type { ContactPermissions } from "@/types";
 import {
   Sidebar,
   SidebarContent,
@@ -46,12 +48,19 @@ const icons = {
   UserCog,
 } as const;
 
-const clientNav = [
-  { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-  { label: "Support", href: "/support", icon: "MessageSquare" },
-  { label: "Billing", href: "/billing", icon: "CreditCard" },
+type NavItem = {
+  label: string;
+  href: string;
+  icon: keyof typeof icons;
+  permission?: keyof ContactPermissions;
+};
+
+const clientNav: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard", permission: "dashboard" },
+  { label: "Support", href: "/support", icon: "MessageSquare", permission: "support" },
+  { label: "Billing", href: "/billing", icon: "CreditCard", permission: "billing" },
   { label: "Knowledge Base", href: "/knowledge-base", icon: "BookOpen" },
-] as const;
+];
 
 const staffNav = [
   { label: "Overview", href: "/admin", icon: "BarChart3" },
@@ -67,6 +76,13 @@ const adminOnlyNav = [
   { label: "Settings", href: "/admin/settings", icon: "Settings" },
 ] as const;
 
+type ClientOption = {
+  id: string;
+  name: string;
+  company: string | null;
+  accessType: "primary" | "contact";
+};
+
 type Props = {
   isStaff: boolean;
   isAdmin: boolean;
@@ -74,6 +90,9 @@ type Props = {
   brandTagline?: string;
   logoLight?: string;
   logoDark?: string;
+  permissions?: ContactPermissions | null;
+  accessibleClients?: ClientOption[];
+  activeClientId?: string | null;
 };
 
 export function AppSidebar({
@@ -83,8 +102,18 @@ export function AppSidebar({
   brandTagline = "Client Support Portal",
   logoLight = "",
   logoDark = "",
+  permissions = null,
+  accessibleClients = [],
+  activeClientId = null,
 }: Props) {
   const pathname = usePathname();
+
+  // Filter client nav by permissions (null permissions = staff/admin, show all)
+  const filteredClientNav = clientNav.filter((item) => {
+    if (!item.permission) return true;
+    if (!permissions) return true; // no client context (admin) → show all
+    return permissions[item.permission];
+  });
 
   return (
     <Sidebar>
@@ -105,6 +134,14 @@ export function AppSidebar({
             </span>
           </div>
         </Link>
+        {accessibleClients.length >= 2 && activeClientId && (
+          <div className="mt-3">
+            <ClientSwitcher
+              clients={accessibleClients}
+              activeClientId={activeClientId}
+            />
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarSeparator />
@@ -113,7 +150,7 @@ export function AppSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {clientNav.map((item) => {
+              {filteredClientNav.map((item) => {
                 const Icon = icons[item.icon];
                 const isActive =
                   pathname === item.href ||

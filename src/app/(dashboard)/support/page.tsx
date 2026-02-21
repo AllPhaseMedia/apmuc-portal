@@ -1,10 +1,11 @@
 import { requireAuth } from "@/lib/auth";
 import { getTickets } from "@/actions/support";
+import { resolveClientContext } from "@/lib/client-context";
 import { isConfigured } from "@/lib/helpscout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Inbox, Plus } from "lucide-react";
+import { MessageSquare, Inbox, Plus, ShieldX } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 
@@ -17,6 +18,29 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
 
 export default async function SupportPage() {
   await requireAuth();
+
+  const ctx = await resolveClientContext();
+  if (ctx && !ctx.permissions.support) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Support</h1>
+          <p className="text-muted-foreground">
+            Get help with your services.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <ShieldX className="h-10 w-10 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">
+              You don&apos;t have permission to view support tickets.
+              Contact your account administrator for access.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!isConfigured()) {
     return (

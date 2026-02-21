@@ -59,10 +59,36 @@ model Client {
 
   services            ClientService[]
   siteChecks          SiteCheck[]
+  contacts            ClientContact[]
 
   @@index([clerkUserId])
   @@index([email])
   @@index([stripeCustomerId])
+}
+
+model ClientContact {
+  id            String   @id @default(uuid())
+  clientId      String
+  clerkUserId   String?
+  email         String
+  name          String
+  roleLabel     String?
+  canDashboard  Boolean  @default(true)
+  canBilling    Boolean  @default(true)
+  canAnalytics  Boolean  @default(true)
+  canUptime     Boolean  @default(true)
+  canSupport    Boolean  @default(true)
+  canSiteHealth Boolean  @default(true)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, email])
+  @@index([clerkUserId])
+  @@index([email])
+  @@index([clientId])
 }
 
 model ClientService {

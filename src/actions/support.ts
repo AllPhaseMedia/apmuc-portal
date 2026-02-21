@@ -1,54 +1,36 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { resolveClientContext } from "@/lib/client-context";
 import * as helpscout from "@/lib/helpscout";
 import type { ActionResult } from "@/types";
 
-async function getClientEmail() {
-  const user = await requireAuth();
-  let client = await prisma.client.findFirst({
-    where: { clerkUserId: user.clerkUserId },
-    select: { id: true, email: true, name: true },
-  });
-
-  // Fallback: match by email and link the Clerk user ID
-  if (!client) {
-    client = await prisma.client.findFirst({
-      where: { email: user.email, clerkUserId: null },
-      select: { id: true, email: true, name: true },
-    });
-
-    if (client) {
-      await prisma.client.update({
-        where: { id: client.id },
-        data: { clerkUserId: user.clerkUserId },
-      });
-    }
-  }
-
-  return client;
-}
-
 export async function getTickets() {
   try {
-    const client = await getClientEmail();
-    if (!client) {
+    await requireAuth();
+
+    const ctx = await resolveClientContext();
+    if (!ctx) {
       return { success: false as const, error: "No client record found." };
+    }
+
+    if (!ctx.permissions.support) {
+      return { success: false as const, error: "You don't have permission to view support tickets." };
     }
 
     if (!helpscout.isConfigured()) {
       return { success: false as const, error: "Support system not configured." };
     }
 
-    const conversations = await helpscout.getConversationsByEmail(client.email);
-    // Filter to only conversations where the client is the customer (not agent)
-    const clientEmail = client.email.toLowerCase();
+    // Use the contact's own email for Help Scout queries (not the client's primary email)
+    const email = ctx.userEmail;
+    const conversations = await helpscout.getConversationsByEmail(email);
+    const emailLower = email.toLowerCase();
     const filtered = (conversations ?? []).filter((c) => {
       const custEmail = (
         c.primaryCustomer?.email ?? c.customer?.email ?? ""
       ).toLowerCase();
-      return custEmail === clientEmail;
+      return custEmail === emailLower;
     });
     return { success: true as const, data: filtered };
   } catch (error) {
@@ -63,6 +45,11 @@ export async function getTicket(conversationId: number) {
   try {
     await requireAuth();
 
+    const ctx = await resolveClientContext();
+    if (!ctx || !ctx.permissions.support) {
+      return { success: false as const, error: "Ticket not found" };
+    }
+
     if (!helpscout.isConfigured()) {
       return { success: false as const, error: "Support system not configured." };
     }
@@ -73,13 +60,12 @@ export async function getTicket(conversationId: number) {
     }
 
     // Verify this conversation belongs to the current user's email
-    const client = await getClientEmail();
     const conversationEmail = (
       conversation.primaryCustomer?.email ??
       conversation.customer?.email ??
       ""
     ).toLowerCase();
-    if (!client || conversationEmail !== client.email.toLowerCase()) {
+    if (conversationEmail !== ctx.userEmail.toLowerCase()) {
       return { success: false as const, error: "Ticket not found" };
     }
 
@@ -104,18 +90,23 @@ export async function createTicket(
   attachments?: TicketAttachment[]
 ): Promise<ActionResult<null>> {
   try {
-    const client = await getClientEmail();
-    if (!client) {
+    const user = await requireAuth();
+
+    const ctx = await resolveClientContext();
+    if (!ctx) {
       return { success: false, error: "No client record found." };
+    }
+
+    if (!ctx.permissions.support) {
+      return { success: false, error: "You don't have permission to create tickets." };
     }
 
     if (!helpscout.isConfigured()) {
       return { success: false, error: "Support system not configured." };
     }
-
     await helpscout.createConversation(
-      client.email,
-      client.name,
+      ctx.userEmail,
+      user.name || ctx.client.name,
       subject,
       body,
       attachments
@@ -135,16 +126,18 @@ export async function replyToTicket(
   attachments?: TicketAttachment[]
 ): Promise<ActionResult<null>> {
   try {
-    const client = await getClientEmail();
-    if (!client) {
-      return { success: false, error: "No client record found." };
+    await requireAuth();
+
+    const ctx = await resolveClientContext();
+    if (!ctx || !ctx.permissions.support) {
+      return { success: false, error: "Not available." };
     }
 
     if (!helpscout.isConfigured()) {
       return { success: false, error: "Support system not configured." };
     }
 
-    await helpscout.replyToConversation(conversationId, client.email, body, attachments);
+    await helpscout.replyToConversation(conversationId, ctx.userEmail, body, attachments);
     return { success: true, data: null };
   } catch (error) {
     return {

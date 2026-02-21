@@ -25,5 +25,18 @@ export type CategoryWithCount = KBCategory & {
   _count: { articles: number };
 };
 
+// Contact permissions
+export type ContactPermission = "dashboard" | "billing" | "analytics" | "uptime" | "support" | "siteHealth";
+export type ContactPermissions = Record<ContactPermission, boolean>;
+export const ALL_PERMISSIONS: ContactPermission[] = ["dashboard", "billing", "analytics", "uptime", "support", "siteHealth"];
+export const PERMISSION_LABELS: Record<ContactPermission, string> = {
+  dashboard: "Dashboard Overview",
+  billing: "Billing & Invoices",
+  analytics: "Analytics",
+  uptime: "Uptime Monitoring",
+  support: "Support Tickets",
+  siteHealth: "Site Health",
+};
+
 export * from "./forms";
 export * from "./branding";

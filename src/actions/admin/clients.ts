@@ -26,7 +26,11 @@ export async function getClient(id: string) {
     await requireAdmin();
     const client = await prisma.client.findUnique({
       where: { id },
-      include: { services: true, siteChecks: { orderBy: { checkedAt: "desc" }, take: 1 } },
+      include: {
+        services: true,
+        siteChecks: { orderBy: { checkedAt: "desc" }, take: 1 },
+        contacts: { orderBy: { createdAt: "asc" } },
+      },
     });
     if (!client) return { success: false as const, error: "Client not found" };
     return { success: true as const, data: client };

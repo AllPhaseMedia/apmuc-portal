@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { getBillingData } from "@/actions/billing";
+import { resolveClientContext } from "@/lib/client-context";
 import { isConfigured } from "@/lib/stripe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ManagePaymentButton } from "@/components/billing/manage-payment-button";
-import { CreditCard, Receipt, FileDown, Wallet } from "lucide-react";
+import { CreditCard, Receipt, FileDown, Wallet, ShieldX } from "lucide-react";
 import { format } from "date-fns";
 
 function formatCurrency(amount: number, currency: string) {
@@ -25,6 +26,29 @@ function formatCurrency(amount: number, currency: string) {
 
 export default async function BillingPage() {
   await requireAuth();
+
+  const ctx = await resolveClientContext();
+  if (ctx && !ctx.permissions.billing) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Billing</h1>
+          <p className="text-muted-foreground">
+            Manage your subscription and invoices.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <ShieldX className="h-10 w-10 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">
+              You don&apos;t have permission to view billing information.
+              Contact your account administrator for access.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!isConfigured()) {
     return (
