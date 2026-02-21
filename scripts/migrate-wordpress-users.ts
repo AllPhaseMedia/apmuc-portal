@@ -102,7 +102,7 @@ async function main() {
       // Detect hash format:
       // $P$ or $H$ = phpass (older WP)
       // $wp$2y$ = WordPress bcrypt (newer WP) — strip $wp prefix for standard bcrypt
-      let passwordHasher: string;
+      let passwordHasher: "phpass" | "bcrypt";
       let passwordDigest: string;
 
       if (wpUser.user_pass.startsWith("$wp$")) {
