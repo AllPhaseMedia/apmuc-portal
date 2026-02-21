@@ -52,7 +52,6 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
       data: {
         email: data.email,
         name: data.name,
-        company: data.company || null,
         websiteUrl: data.websiteUrl || null,
         stripeCustomerId: data.stripeCustomerId || null,
         umamiSiteId: data.umamiSiteId || null,
@@ -88,7 +87,6 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
       data: {
         email: data.email,
         name: data.name,
-        company: data.company || null,
         websiteUrl: data.websiteUrl || null,
         stripeCustomerId: data.stripeCustomerId || null,
         umamiSiteId: data.umamiSiteId || null,

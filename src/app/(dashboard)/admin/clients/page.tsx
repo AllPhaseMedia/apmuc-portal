@@ -47,7 +47,6 @@ export default async function AdminClientsPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Company</TableHead>
               <TableHead>Services</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
@@ -55,7 +54,7 @@ export default async function AdminClientsPage() {
           <TableBody>
             {clients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No clients yet.
                 </TableCell>
               </TableRow>
@@ -72,9 +71,6 @@ export default async function AdminClientsPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {client.email}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {client.company || "—"}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">

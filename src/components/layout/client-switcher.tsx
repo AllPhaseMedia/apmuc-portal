@@ -17,7 +17,6 @@ import { ChevronsUpDown, Check, Building2 } from "lucide-react";
 type ClientOption = {
   id: string;
   name: string;
-  company: string | null;
   accessType: "primary" | "contact";
 };
 
@@ -52,16 +51,9 @@ export function ClientSwitcher({ clients, activeClientId }: Props) {
         >
           <div className="flex items-center gap-2 min-w-0">
             <Building2 className="h-4 w-4 shrink-0 text-sidebar-foreground/60" />
-            <div className="flex flex-col items-start min-w-0">
-              <span className="text-xs font-medium truncate max-w-[140px]">
-                {active.company || active.name}
-              </span>
-              {active.company && (
-                <span className="text-[10px] text-sidebar-foreground/50 truncate max-w-[140px]">
-                  {active.name}
-                </span>
-              )}
-            </div>
+            <span className="text-xs font-medium truncate max-w-[140px]">
+              {active.name}
+            </span>
           </div>
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
         </Button>
@@ -75,16 +67,9 @@ export function ClientSwitcher({ clients, activeClientId }: Props) {
             onClick={() => handleSwitch(client.id)}
             className="flex items-center justify-between"
           >
-            <div className="flex flex-col min-w-0">
-              <span className="truncate font-medium">
-                {client.company || client.name}
-              </span>
-              {client.company && (
-                <span className="text-xs text-muted-foreground truncate">
-                  {client.name}
-                </span>
-              )}
-            </div>
+            <span className="truncate font-medium">
+              {client.name}
+            </span>
             {client.id === activeClientId && (
               <Check className="h-4 w-4 shrink-0" />
             )}

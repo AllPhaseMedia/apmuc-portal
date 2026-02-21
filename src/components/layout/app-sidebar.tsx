@@ -79,7 +79,6 @@ const adminOnlyNav = [
 type ClientOption = {
   id: string;
   name: string;
-  company: string | null;
   accessType: "primary" | "contact";
 };
 

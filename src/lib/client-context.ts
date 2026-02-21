@@ -190,17 +190,17 @@ async function resolveForClient(
  * Get all clients a user can access (for the client switcher).
  */
 export const getAccessibleClients = cache(async (): Promise<
-  { id: string; name: string; company: string | null; accessType: "primary" | "contact" }[]
+  { id: string; name: string; accessType: "primary" | "contact" }[]
 > => {
   const user = await getAuthUser();
   if (!user) return [];
 
-  const results: { id: string; name: string; company: string | null; accessType: "primary" | "contact" }[] = [];
+  const results: { id: string; name: string; accessType: "primary" | "contact" }[] = [];
 
   // Clients where user is primary
   const primaryClients = await prisma.client.findMany({
     where: { clerkUserId: user.clerkUserId, isActive: true },
-    select: { id: true, name: true, company: true },
+    select: { id: true, name: true },
   });
   for (const c of primaryClients) {
     results.push({ ...c, accessType: "primary" });
@@ -210,7 +210,7 @@ export const getAccessibleClients = cache(async (): Promise<
   const contacts = await prisma.clientContact.findMany({
     where: { clerkUserId: user.clerkUserId, isActive: true },
     include: {
-      client: { select: { id: true, name: true, company: true, isActive: true } },
+      client: { select: { id: true, name: true, isActive: true } },
     },
   });
   for (const c of contacts) {
@@ -218,7 +218,6 @@ export const getAccessibleClients = cache(async (): Promise<
       results.push({
         id: c.client.id,
         name: c.client.name,
-        company: c.client.company,
         accessType: "contact",
       });
     }

@@ -7,7 +7,6 @@ import { z } from "zod/v4";
 export const clientFormSchema = z.object({
   email: z.email("Invalid email address"),
   name: z.string().min(1, "Name is required"),
-  company: z.string().optional(),
   websiteUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
   stripeCustomerId: z.string().optional().or(z.literal("")),
   umamiSiteId: z.string().optional().or(z.literal("")),

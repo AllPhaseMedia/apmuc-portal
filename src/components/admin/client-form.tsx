@@ -36,7 +36,6 @@ export function ClientForm({ client }: Props) {
     const values = {
       email: formData.get("email") as string,
       name: formData.get("name") as string,
-      company: formData.get("company") as string,
       websiteUrl: formData.get("websiteUrl") as string,
       stripeCustomerId: formData.get("stripeCustomerId") as string,
       umamiSiteId: formData.get("umamiSiteId") as string,
@@ -82,16 +81,12 @@ export function ClientForm({ client }: Props) {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
+            <Label htmlFor="name">Client / Company Name *</Label>
             <Input id="name" name="name" defaultValue={client?.name ?? ""} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email *</Label>
             <Input id="email" name="email" type="email" defaultValue={client?.email ?? ""} required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="company">Company</Label>
-            <Input id="company" name="company" defaultValue={client?.company ?? ""} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="websiteUrl">Website URL</Label>

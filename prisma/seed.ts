@@ -14,8 +14,7 @@ async function main() {
     update: {},
     create: {
       email: "demo@example.com",
-      name: "Demo Client",
-      company: "Demo Agency",
+      name: "Demo Agency",
       websiteUrl: "https://example.com",
       stripeCustomerId: null,
       umamiSiteId: null,
@@ -29,8 +28,7 @@ async function main() {
     update: {},
     create: {
       email: "acme@example.com",
-      name: "Acme Corp",
-      company: "Acme Corporation",
+      name: "Acme Corporation",
       websiteUrl: "https://acme-example.com",
       isActive: true,
     },

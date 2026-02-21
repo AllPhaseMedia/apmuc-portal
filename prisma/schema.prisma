@@ -45,7 +45,6 @@ model Client {
   clerkUserId         String?         @unique
   email               String          @unique
   name                String
-  company             String?
   websiteUrl          String?
   stripeCustomerId    String?         @unique
   umamiSiteId         String?
