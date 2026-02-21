@@ -19,4 +19,6 @@ jobs:
             git pull origin master
             npm install
             npm run build
+            cp -r .next/static .next/standalone/.next/static
+            cp -r public .next/standalone/public
             pm2 restart apmuc-portal || pm2 start ecosystem.config.js
