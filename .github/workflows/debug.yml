@@ -14,14 +14,13 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            cd /var/www/new.clientsupport.app
-            echo "=== PM2 STATUS ==="
-            pm2 status
-            echo "=== PM2 LOGS (last 50 lines) ==="
-            pm2 logs apmuc-portal --nostream --lines 50
-            echo "=== CHECK STANDALONE FILES ==="
-            ls -la .next/standalone/
-            ls -la .next/standalone/.next/static/ 2>/dev/null || echo "NO .next/static in standalone"
-            ls -la .next/standalone/public/ 2>/dev/null || echo "NO public in standalone"
-            echo "=== NODE VERSION ==="
-            node -v
+            echo "=== WHAT IS ON PORT 3000 ==="
+            ss -tlnp | grep 3000 || echo "Nothing on port 3000"
+            echo "=== ALL NODE PROCESSES ==="
+            ps aux | grep node || echo "No node processes"
+            echo "=== PM2 LIST ==="
+            pm2 list
+            echo "=== PM2 LOGS (last 30) ==="
+            pm2 logs apmuc-portal --nostream --lines 30
+            echo "=== XCLOUD/SUPERVISOR MANAGED? ==="
+            systemctl list-units --type=service | grep -i "client\|portal\|node\|next" || echo "No matching systemd services"
