@@ -7,26 +7,21 @@ jobs:
   debug:
     runs-on: ubuntu-latest
     steps:
-      - name: Check VPS logs
+      - name: Fix and start app
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            echo "=== CHECK NGINX CONFIG (readable files) ==="
-            cat /etc/nginx/sites-enabled/* 2>/dev/null || true
-            cat /etc/nginx/conf.d/*.conf 2>/dev/null || true
-            echo "=== CHECK /var/www CONTENTS ==="
-            ls -la /var/www/new.clientsupport.app/ 2>/dev/null | head -20
-            echo "=== CHECK XCLOUD CONFIG FILES ==="
-            ls -la /var/www/new.clientsupport.app/.xcloud* 2>/dev/null || true
-            cat /var/www/new.clientsupport.app/.xcloud* 2>/dev/null || true
-            echo "=== CHECK SYSTEMD USER SERVICES ==="
-            systemctl --user list-units --type=service 2>/dev/null || true
-            echo "=== CHECK SUPERVISORD ==="
-            ls /etc/supervisor/conf.d/ 2>/dev/null || true
-            cat /etc/supervisor/conf.d/*clientsupport* 2>/dev/null || true
+            echo "=== CHECK PORT 3000 ==="
+            ss -tln | grep 3000 || echo "Port 3000 is FREE"
+            echo "=== START APP ==="
+            cd /var/www/new.clientsupport.app
+            pm2 start ecosystem.config.js
+            sleep 3
             echo "=== PM2 STATUS ==="
-            pm2 delete apmuc-portal 2>/dev/null || true
-            pm2 list
+            pm2 status
+            echo "=== PM2 LOGS ==="
+            pm2 logs apmuc-portal --nostream --lines 15
+            pm2 save
