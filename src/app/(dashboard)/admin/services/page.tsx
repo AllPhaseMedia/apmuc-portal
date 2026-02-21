@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { getRecommendedServices } from "@/actions/admin/services";
+import { getForms } from "@/actions/admin/forms";
 import { SERVICE_TYPE_LABELS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,13 +17,19 @@ import { ServiceDialog } from "@/components/admin/service-dialog";
 
 export default async function AdminServicesPage() {
   await requireAdmin();
-  const result = await getRecommendedServices();
+  const [result, formsResult] = await Promise.all([
+    getRecommendedServices(),
+    getForms(),
+  ]);
 
   if (!result.success) {
     return <p className="text-destructive">{result.error}</p>;
   }
 
   const services = result.data;
+  const forms = formsResult.success
+    ? formsResult.data.filter((f) => f.isActive)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -35,7 +42,7 @@ export default async function AdminServicesPage() {
             Services shown to clients as upsell opportunities.
           </p>
         </div>
-        <ServiceDialog>
+        <ServiceDialog forms={forms}>
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             Add Service
@@ -80,7 +87,7 @@ export default async function AdminServicesPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <ServiceDialog service={service}>
+                    <ServiceDialog service={service} forms={forms}>
                       <Button variant="ghost" size="sm">
                         Edit
                       </Button>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { RecommendedService } from "@prisma/client";
+import type { RecommendedService, Form } from "@prisma/client";
 import { SERVICE_TYPE_LABELS } from "@/lib/constants";
 import {
   createRecommendedService,
@@ -34,24 +34,29 @@ import {
 
 const SERVICE_TYPES = Object.keys(SERVICE_TYPE_LABELS);
 
+type FormSummary = Pick<Form, "id" | "name" | "isActive"> & {
+  _count: { submissions: number };
+};
+
 type Props = {
   service?: RecommendedService;
+  forms?: FormSummary[];
   children: React.ReactNode;
 };
 
-export function ServiceDialog({ service, children }: Props) {
+export function ServiceDialog({ service, forms = [], children }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<string>(service?.type ?? "HOSTING");
   const [isActive, setIsActive] = useState(service?.isActive ?? true);
+  const [formId, setFormId] = useState<string>(service?.formId ?? "none");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const features = service?.features as string[] | undefined;
     const values = {
       type: type as never,
       title: formData.get("title") as string,
@@ -59,6 +64,7 @@ export function ServiceDialog({ service, children }: Props) {
       features: formData.get("features") as string,
       ctaUrl: formData.get("ctaUrl") as string,
       ctaLabel: formData.get("ctaLabel") as string,
+      formId: formId === "none" ? null : formId,
       isActive,
     };
 
@@ -93,6 +99,8 @@ export function ServiceDialog({ service, children }: Props) {
   const featuresDefault = service?.features
     ? (service.features as string[]).join("\n")
     : "";
+
+  const hasLinkedForm = formId !== "none";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -160,16 +168,54 @@ export function ServiceDialog({ service, children }: Props) {
               />
             </div>
 
+            {/* Form Link */}
+            <div className="space-y-2">
+              <Label>Link to Form</Label>
+              <Select value={formId} onValueChange={setFormId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No form linked" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No form (use URL)</SelectItem>
+                  {forms.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {hasLinkedForm && (
+                <p className="text-xs text-muted-foreground">
+                  CTA will open this form in a modal dialog with client info pre-filled.
+                </p>
+              )}
+            </div>
+
+            {/* CTA URL/Label - show URL only when no form is linked */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="svc-cta-url">CTA URL</Label>
-                <Input
-                  id="svc-cta-url"
-                  name="ctaUrl"
-                  placeholder="https://"
-                  defaultValue={service?.ctaUrl ?? ""}
-                />
-              </div>
+              {!hasLinkedForm && (
+                <div className="space-y-2">
+                  <Label htmlFor="svc-cta-url">CTA URL</Label>
+                  <Input
+                    id="svc-cta-url"
+                    name="ctaUrl"
+                    placeholder="https://"
+                    defaultValue={service?.ctaUrl ?? ""}
+                  />
+                </div>
+              )}
+              {hasLinkedForm && (
+                <div className="space-y-2">
+                  <Label htmlFor="svc-cta-url">CTA URL</Label>
+                  <Input
+                    id="svc-cta-url"
+                    name="ctaUrl"
+                    value=""
+                    disabled
+                    placeholder="Using linked form"
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="svc-cta-label">CTA Label</Label>
                 <Input

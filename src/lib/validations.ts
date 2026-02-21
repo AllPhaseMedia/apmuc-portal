@@ -61,6 +61,7 @@ export const serviceFormSchema = z.object({
   features: z.string().optional().or(z.literal("")),
   ctaUrl: z.string().optional().or(z.literal("")),
   ctaLabel: z.string().optional().or(z.literal("")),
+  formId: z.string().nullable().optional(),
   isActive: z.boolean().default(true),
 });
 

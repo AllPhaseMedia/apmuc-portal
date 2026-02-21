@@ -38,6 +38,7 @@ export async function createRecommendedService(values: ServiceFormValues): Promi
         features,
         ctaUrl: data.ctaUrl || null,
         ctaLabel: data.ctaLabel || "Learn More",
+        formId: data.formId || null,
         isActive: data.isActive,
       },
     });
@@ -72,6 +73,7 @@ export async function updateRecommendedService(
         features,
         ctaUrl: data.ctaUrl || null,
         ctaLabel: data.ctaLabel || "Learn More",
+        formId: data.formId || null,
         isActive: data.isActive,
       },
     });

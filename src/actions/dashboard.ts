@@ -68,6 +68,11 @@ export async function getDashboardData(): Promise<
         isActive: true,
         type: { notIn: clientServiceTypes },
       },
+      include: {
+        form: {
+          select: { id: true, name: true, fields: true, settings: true, isActive: true },
+        },
+      },
       orderBy: { sortOrder: "asc" },
     });
 

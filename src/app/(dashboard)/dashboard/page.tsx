@@ -70,7 +70,14 @@ export default async function DashboardPage() {
       {upsellServices.length > 0 && (
         <>
           <Separator />
-          <UpsellSection services={upsellServices} />
+          <UpsellSection
+            services={upsellServices}
+            prefill={{
+              name: client.name,
+              email: client.email,
+              website: client.websiteUrl || undefined,
+            }}
+          />
         </>
       )}
 
