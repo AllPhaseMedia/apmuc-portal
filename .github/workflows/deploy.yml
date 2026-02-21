@@ -21,9 +21,4 @@ jobs:
             npm run build
             cp -r .next/static .next/standalone/.next/static
             cp -r public .next/standalone/public
-            pm2 kill
-            sleep 2
-            fuser -k 3000/tcp 2>/dev/null || true
-            sleep 1
-            pm2 start ecosystem.config.js
-            pm2 save
+            pm2 restart apmuc-portal || pm2 start ecosystem.config.js

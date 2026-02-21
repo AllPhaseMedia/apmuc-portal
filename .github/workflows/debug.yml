@@ -7,21 +7,16 @@ jobs:
   debug:
     runs-on: ubuntu-latest
     steps:
-      - name: Fix and start app
+      - name: Check VPS status
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            echo "=== CHECK PORT 3000 ==="
+            echo "=== PORT 3000 ==="
             ss -tln | grep 3000 || echo "Port 3000 is FREE"
-            echo "=== START APP ==="
-            cd /var/www/new.clientsupport.app
-            pm2 start ecosystem.config.js
-            sleep 3
             echo "=== PM2 STATUS ==="
             pm2 status
-            echo "=== PM2 LOGS ==="
-            pm2 logs apmuc-portal --nostream --lines 15
-            pm2 save
+            echo "=== PM2 LOGS (last 20 lines) ==="
+            pm2 logs apmuc-portal --nostream --lines 20
