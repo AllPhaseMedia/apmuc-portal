@@ -14,13 +14,15 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            echo "=== WHAT IS ON PORT 3000 ==="
-            ss -tlnp | grep 3000 || echo "Nothing on port 3000"
-            echo "=== ALL NODE PROCESSES ==="
-            ps aux | grep node || echo "No node processes"
-            echo "=== PM2 LIST ==="
-            pm2 list
-            echo "=== PM2 LOGS (last 30) ==="
-            pm2 logs apmuc-portal --nostream --lines 30
-            echo "=== XCLOUD/SUPERVISOR MANAGED? ==="
-            systemctl list-units --type=service | grep -i "client\|portal\|node\|next" || echo "No matching systemd services"
+            echo "=== WHO HOLDS PORT 3000 ==="
+            sudo ss -tlnp | grep 3000 || true
+            sudo lsof -i :3000 2>/dev/null || true
+            echo "=== NGINX CONFIG ==="
+            sudo cat /etc/nginx/sites-enabled/*clientsupport* 2>/dev/null || true
+            sudo grep -r "3000" /etc/nginx/ 2>/dev/null || true
+            echo "=== XCLOUD APP CONFIG ==="
+            ls -la /var/www/ 2>/dev/null || true
+            echo "=== ALL PM2 PROCESSES (ALL USERS) ==="
+            sudo pm2 list 2>/dev/null || true
+            echo "=== SYSTEMD SERVICES WITH NODE ==="
+            systemctl list-units --type=service --all 2>/dev/null | grep -i "node\|next\|pm2\|client" || echo "none found"
