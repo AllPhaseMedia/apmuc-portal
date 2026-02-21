@@ -36,7 +36,7 @@ export async function createForm(values: FormValues): Promise<ActionResult<Form>
     await requireAdmin();
     const parsed = formSchema.safeParse(values);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0]?.message || "Invalid form data" };
+      return { success: false, error: parsed.error.issues[0]?.message || "Invalid form data" };
     }
 
     const existing = await prisma.form.findUnique({ where: { slug: parsed.data.slug } });
@@ -49,8 +49,8 @@ export async function createForm(values: FormValues): Promise<ActionResult<Form>
         name: parsed.data.name,
         slug: parsed.data.slug,
         description: parsed.data.description || null,
-        fields: parsed.data.fields as unknown as Record<string, unknown>[],
-        settings: parsed.data.settings as unknown as Record<string, unknown>,
+        fields: JSON.parse(JSON.stringify(parsed.data.fields)),
+        settings: JSON.parse(JSON.stringify(parsed.data.settings)),
         isActive: parsed.data.isActive,
         isPublic: parsed.data.isPublic,
       },
@@ -68,7 +68,7 @@ export async function updateForm(id: string, values: FormValues): Promise<Action
     await requireAdmin();
     const parsed = formSchema.safeParse(values);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0]?.message || "Invalid form data" };
+      return { success: false, error: parsed.error.issues[0]?.message || "Invalid form data" };
     }
 
     const existing = await prisma.form.findFirst({
@@ -84,8 +84,8 @@ export async function updateForm(id: string, values: FormValues): Promise<Action
         name: parsed.data.name,
         slug: parsed.data.slug,
         description: parsed.data.description || null,
-        fields: parsed.data.fields as unknown as Record<string, unknown>[],
-        settings: parsed.data.settings as unknown as Record<string, unknown>,
+        fields: JSON.parse(JSON.stringify(parsed.data.fields)),
+        settings: JSON.parse(JSON.stringify(parsed.data.settings)),
         isActive: parsed.data.isActive,
         isPublic: parsed.data.isPublic,
       },

@@ -75,7 +75,7 @@ export async function submitForm(
       await prisma.formSubmission.create({
         data: {
           formId,
-          data: data as Record<string, unknown>,
+          data: JSON.parse(JSON.stringify(data)),
           metadata: {
             clientId: clientId || null,
             email: clientEmail || null,
