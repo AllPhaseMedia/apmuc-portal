@@ -60,6 +60,7 @@ export interface FormSettings {
   submitButtonLabel: string;
   successMessage: string;
   redirectUrl: string | null;
+  hideTitle?: boolean;
 }
 
 // Default settings for new forms

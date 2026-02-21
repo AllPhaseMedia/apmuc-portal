@@ -5,6 +5,8 @@ import { FeatureGrid } from "@/components/public/feature-grid";
 import { RichContentSection } from "@/components/public/rich-content-section";
 import { PublicFooter } from "@/components/public/public-footer";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const data = await getHomepageData();
 

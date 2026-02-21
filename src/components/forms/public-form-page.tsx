@@ -52,12 +52,14 @@ export function PublicFormPage({ form, prefill, brandName = "APM | UC Support" }
     <div className="flex flex-1 items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         <div className="rounded-lg border bg-background p-6 sm:p-8 shadow-sm">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">{form.name}</h1>
-            {form.description && (
-              <p className="text-muted-foreground mt-1">{form.description}</p>
-            )}
-          </div>
+          {!form.settings.hideTitle && (
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">{form.name}</h1>
+              {form.description && (
+                <p className="text-muted-foreground mt-1">{form.description}</p>
+              )}
+            </div>
+          )}
           <FormRenderer
             fields={form.fields}
             prefill={prefill}

@@ -110,6 +110,18 @@ export function FormSettingsPanel({ open, onOpenChange, settings, onChange }: Fo
             <p className="text-xs text-muted-foreground">POST JSON payload on each submission</p>
           </div>
 
+          {/* Hide Title */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Hide Form Title</Label>
+              <p className="text-xs text-muted-foreground">Hide the form name and description on the public page</p>
+            </div>
+            <Switch
+              checked={settings.hideTitle ?? false}
+              onCheckedChange={(checked) => update({ hideTitle: checked })}
+            />
+          </div>
+
           {/* Submit Button Label */}
           <div className="space-y-1.5">
             <Label>Submit Button Label</Label>

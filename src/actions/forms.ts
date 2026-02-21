@@ -72,12 +72,23 @@ export async function submitForm(
 
     // Handle Help Scout type
     if (settings.type === "helpscout") {
-      const emailValue = data[fields.find((f) => f.prefillKey === "email")?.id || ""] as string;
-      const nameValue = data[fields.find((f) => f.prefillKey === "name")?.id || ""] as string;
+      // Find email field: prefer prefillKey match, fall back to type === "email"
+      const emailField =
+        fields.find((f) => f.prefillKey === "email") ||
+        fields.find((f) => f.type === "email");
+      const emailValue = emailField ? (data[emailField.id] as string) : "";
+
+      // Find name field: prefer prefillKey match, fall back to type === "text" with "name" in label
+      const nameField =
+        fields.find((f) => f.prefillKey === "name") ||
+        fields.find((f) => f.type === "text" && f.label.toLowerCase().includes("name"));
+      const nameValue = nameField ? (data[nameField.id] as string) : "";
+
       const bodyHtml = labeledFields
         .map((f) => `<p><strong>${f.label}:</strong> ${f.value}</p>`)
         .join("");
 
+      // Always use form-submitted email over client record
       await createConversation(
         emailValue || clientEmail || "unknown@unknown.com",
         nameValue || "Portal User",

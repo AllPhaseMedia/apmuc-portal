@@ -46,6 +46,12 @@ export default async function PublicForm({ params }: PageProps) {
           email: client.email,
           website: client.websiteUrl || undefined,
         };
+      } else {
+        // No client record (e.g. admin) — prefill from Clerk user
+        prefill = {
+          name: user.name || undefined,
+          email: user.email || undefined,
+        };
       }
     }
   } catch {
