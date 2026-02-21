@@ -22,6 +22,8 @@ export type HomepageHero = {
   description: string;
   primaryCta: HeroCta;
   secondaryCta: HeroCta;
+  backgroundImage?: string; // base64 data URL
+  textColor?: string; // hex color
 };
 
 export type FeatureBlock = {
@@ -30,6 +32,13 @@ export type FeatureBlock = {
   description: string;
   icon: string; // Lucide icon name
   cta: HeroCta;
+  order: number;
+};
+
+export type HeaderLink = {
+  id: string;
+  label: string;
+  href: string;
   order: number;
 };
 
@@ -48,4 +57,5 @@ export type HomepageData = {
   contentBelow: string;
   footerContent: string;
   footerLinks: FooterLink[];
+  headerLinks: HeaderLink[];
 };

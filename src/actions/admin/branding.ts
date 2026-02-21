@@ -8,6 +8,7 @@ import type {
   HomepageHero,
   FeatureBlock,
   FooterLink,
+  HeaderLink,
 } from "@/types/branding";
 
 async function upsertSetting(key: string, value: string) {
@@ -249,5 +250,46 @@ export async function saveFooterLinks(
   } catch (error) {
     console.error("[branding] saveFooterLinks error:", error);
     return { success: false, error: "Failed to save footer links" };
+  }
+}
+
+// ─── Header ─────────────────────────────────────────────────
+
+export async function getHeaderSettings(): Promise<
+  ActionResult<{ links: HeaderLink[] }>
+> {
+  try {
+    await requireAdmin();
+    const map = await getSettingMap(["headerLinks"]);
+
+    let links: HeaderLink[] = [];
+    if (map.headerLinks) {
+      try {
+        links = JSON.parse(map.headerLinks);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return {
+      success: true,
+      data: { links },
+    };
+  } catch (error) {
+    console.error("[branding] getHeaderSettings error:", error);
+    return { success: false, error: "Failed to load header settings" };
+  }
+}
+
+export async function saveHeaderLinks(
+  links: HeaderLink[]
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireAdmin();
+    await upsertSetting("headerLinks", JSON.stringify(links));
+    return { success: true, data: { message: "Header links saved" } };
+  } catch (error) {
+    console.error("[branding] saveHeaderLinks error:", error);
+    return { success: false, error: "Failed to save header links" };
   }
 }

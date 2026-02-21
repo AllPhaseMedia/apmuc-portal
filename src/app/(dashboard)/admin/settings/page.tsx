@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSmtpSettings } from "@/actions/admin/settings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandingTab } from "@/components/admin/settings/branding-tab";
+import { HeaderTab } from "@/components/admin/settings/header-tab";
 import { HomepageTab } from "@/components/admin/settings/homepage-tab";
 import { FooterTab } from "@/components/admin/settings/footer-tab";
 import { SmtpSettingsForm } from "@/components/admin/smtp-settings-form";
@@ -31,6 +32,7 @@ export default async function AdminSettingsPage() {
       <Tabs defaultValue="branding" className="space-y-6">
         <TabsList>
           <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="header">Header</TabsTrigger>
           <TabsTrigger value="homepage">Homepage</TabsTrigger>
           <TabsTrigger value="footer">Footer</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
@@ -38,6 +40,10 @@ export default async function AdminSettingsPage() {
 
         <TabsContent value="branding">
           <BrandingTab />
+        </TabsContent>
+
+        <TabsContent value="header">
+          <HeaderTab />
         </TabsContent>
 
         <TabsContent value="homepage">

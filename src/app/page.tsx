@@ -12,7 +12,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PublicHeader branding={data.branding} />
+      <PublicHeader branding={data.branding} headerLinks={data.headerLinks} />
       <main className="flex-1">
         <HeroSection hero={data.hero} />
         <RichContentSection html={data.contentAbove} />

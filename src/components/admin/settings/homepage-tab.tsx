@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { RichEditor } from "@/components/admin/rich-editor";
+import { LogoUploadField } from "./logo-upload-field";
 import { FeatureBlocksList } from "./feature-blocks-list";
 import {
   getHomepageSettings,
@@ -190,6 +191,43 @@ export function HomepageTab() {
                   })
                 }
               />
+            </div>
+          </div>
+          <LogoUploadField
+            label="Background Image"
+            value={hero.backgroundImage || ""}
+            onChange={(dataUrl) =>
+              setHero({ ...hero, backgroundImage: dataUrl || undefined })
+            }
+            maxSizeKb={2048}
+            accept="image/png,image/jpeg,image/webp"
+          />
+          <div className="space-y-1.5">
+            <Label>Text Color</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                type="color"
+                value={hero.textColor || "#000000"}
+                onChange={(e) =>
+                  setHero({ ...hero, textColor: e.target.value })
+                }
+                className="h-10 w-14 cursor-pointer p-1"
+              />
+              <code className="text-xs text-muted-foreground">
+                {hero.textColor || "(default)"}
+              </code>
+              {hero.textColor && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setHero({ ...hero, textColor: undefined })
+                  }
+                >
+                  Reset
+                </Button>
+              )}
             </div>
           </div>
           <Button onClick={handleSaveHero} disabled={savingHero}>

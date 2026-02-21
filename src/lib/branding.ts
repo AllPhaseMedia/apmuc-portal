@@ -9,6 +9,7 @@ import type {
   HomepageHero,
   FeatureBlock,
   FooterLink,
+  HeaderLink,
 } from "@/types/branding";
 
 const BRANDING_KEYS = [
@@ -38,6 +39,21 @@ const DEFAULT_BRANDING: BrandingSettings = {
   colorPrimary: "",
   colorSidebar: "",
 };
+
+const DEFAULT_HEADER_LINKS: HeaderLink[] = [
+  {
+    id: "default-submit",
+    label: "Submit a Request",
+    href: "/forms/support-request",
+    order: 0,
+  },
+  {
+    id: "default-signin",
+    label: "Sign In",
+    href: "/sign-in",
+    order: 1,
+  },
+];
 
 const DEFAULT_HERO: HomepageHero = {
   title: "How can we help you?",
@@ -115,6 +131,7 @@ export const getHomepageData = cache(async (): Promise<HomepageData> => {
       "homepageContentBelow",
       "footerContent",
       "footerLinks",
+      "headerLinks",
     ];
 
     const rows = await prisma.systemSetting.findMany({
@@ -166,6 +183,15 @@ export const getHomepageData = cache(async (): Promise<HomepageData> => {
       }
     }
 
+    let headerLinks: HeaderLink[] = DEFAULT_HEADER_LINKS;
+    if (map.headerLinks) {
+      try {
+        headerLinks = JSON.parse(map.headerLinks);
+      } catch {
+        // use default
+      }
+    }
+
     return {
       branding,
       hero,
@@ -174,6 +200,7 @@ export const getHomepageData = cache(async (): Promise<HomepageData> => {
       contentBelow: map.homepageContentBelow || "",
       footerContent: map.footerContent || "",
       footerLinks: footerLinks.sort((a, b) => a.order - b.order),
+      headerLinks: headerLinks.sort((a, b) => a.order - b.order),
     };
   } catch {
     // Fallback to defaults when DB is unavailable (e.g. build time)
@@ -185,6 +212,7 @@ export const getHomepageData = cache(async (): Promise<HomepageData> => {
       contentBelow: "",
       footerContent: "",
       footerLinks: [],
+      headerLinks: DEFAULT_HEADER_LINKS,
     };
   }
 });

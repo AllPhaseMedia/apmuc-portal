@@ -11,7 +11,7 @@ export default async function FormsLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-muted/30">
-      <PublicHeader branding={data.branding} />
+      <PublicHeader branding={data.branding} headerLinks={data.headerLinks} />
       <main className="flex flex-1 flex-col">{children}</main>
       <PublicFooter
         branding={data.branding}

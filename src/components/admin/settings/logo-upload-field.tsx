@@ -9,12 +9,16 @@ type Props = {
   label: string;
   value: string; // base64 data URL
   onChange: (dataUrl: string) => void;
+  maxSizeKb?: number;
+  accept?: string;
 };
 
-const MAX_SIZE_KB = 500;
-const ACCEPTED = "image/png,image/svg+xml,image/webp";
+const DEFAULT_MAX_SIZE_KB = 500;
+const DEFAULT_ACCEPTED = "image/png,image/svg+xml,image/webp";
 
-export function LogoUploadField({ label, value, onChange }: Props) {
+export function LogoUploadField({ label, value, onChange, maxSizeKb, accept }: Props) {
+  const MAX_SIZE_KB = maxSizeKb ?? DEFAULT_MAX_SIZE_KB;
+  const ACCEPTED = accept ?? DEFAULT_ACCEPTED;
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -30,7 +34,7 @@ export function LogoUploadField({ label, value, onChange }: Props) {
       };
       reader.readAsDataURL(file);
     },
-    [onChange]
+    [onChange, MAX_SIZE_KB]
   );
 
   const handleDrop = useCallback(
