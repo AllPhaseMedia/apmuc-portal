@@ -116,6 +116,38 @@ export function FieldConfig({ field, allFields, onChange, onClose }: FieldConfig
         </div>
       )}
 
+      {/* File-specific config */}
+      {field.type === "file" && (
+        <>
+          <div className="space-y-1.5">
+            <Label>Max File Size (MB)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              value={field.maxFileSize ?? 10}
+              onChange={(e) =>
+                onChange({ ...field, maxFileSize: parseInt(e.target.value) || 10 })
+              }
+              placeholder="10"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Accepted File Types</Label>
+            <Input
+              value={field.acceptedTypes || ""}
+              onChange={(e) =>
+                onChange({ ...field, acceptedTypes: e.target.value })
+              }
+              placeholder="image/*,.pdf,.doc,.docx"
+            />
+            <p className="text-xs text-muted-foreground">
+              Comma-separated MIME types or extensions. Leave blank for any.
+            </p>
+          </div>
+        </>
+      )}
+
       {/* Options (for select, radio, checkbox) */}
       {hasOptions && (
         <div className="space-y-1.5">

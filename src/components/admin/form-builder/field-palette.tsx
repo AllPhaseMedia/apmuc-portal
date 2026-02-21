@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Circle,
   CheckSquare,
+  Upload,
   Heading3,
   Minus,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const ICONS: Record<string, React.ElementType> = {
   ChevronDown,
   Circle,
   CheckSquare,
+  Upload,
   Heading3,
   Minus,
 };

@@ -75,7 +75,7 @@ export const formFieldSchema = z.object({
   id: z.string(),
   type: z.enum([
     "text", "textarea", "email", "phone",
-    "select", "checkbox", "radio", "heading", "divider",
+    "select", "checkbox", "radio", "file", "heading", "divider",
   ]),
   label: z.string().min(1, "Label is required"),
   placeholder: z.string().optional(),
@@ -89,6 +89,8 @@ export const formFieldSchema = z.object({
     value: z.string().optional(),
   })).optional(),
   prefillKey: z.enum(["name", "email", "website", "serviceName"]).optional(),
+  maxFileSize: z.number().positive().optional(),
+  acceptedTypes: z.string().optional(),
 });
 
 export const formSettingsSchema = z.object({

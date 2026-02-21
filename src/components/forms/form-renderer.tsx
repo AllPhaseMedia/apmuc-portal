@@ -15,6 +15,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2 } from "lucide-react";
+import { FileUploadField, fileToBase64 } from "@/components/forms/file-upload-field";
+import type { FileAttachment } from "@/components/forms/file-upload-field";
 import type { FormField, FormPrefillData, ConditionOperator } from "@/types/forms";
 
 interface FormRendererProps {
@@ -70,6 +72,7 @@ export function FormRenderer({
   }, [fields, prefill]);
 
   const [formData, setFormData] = useState<Record<string, string | string[]>>(initialData);
+  const [fileData, setFileData] = useState<Record<string, FileAttachment[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -97,9 +100,15 @@ export function FormRenderer({
     for (const field of fields) {
       if (!isFieldVisible(field)) continue;
       if (field.required && !field.type.match(/^(heading|divider)$/)) {
-        const val = formData[field.id];
-        if (!val || (Array.isArray(val) && val.length === 0) || (typeof val === "string" && val.trim() === "")) {
-          newErrors[field.id] = `${field.label} is required`;
+        if (field.type === "file") {
+          if (!fileData[field.id] || fileData[field.id].length === 0) {
+            newErrors[field.id] = `${field.label} is required`;
+          }
+        } else {
+          const val = formData[field.id];
+          if (!val || (Array.isArray(val) && val.length === 0) || (typeof val === "string" && val.trim() === "")) {
+            newErrors[field.id] = `${field.label} is required`;
+          }
         }
       }
       if (field.type === "email" && formData[field.id]) {
@@ -111,7 +120,7 @@ export function FormRenderer({
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [fields, formData, isFieldVisible]);
+  }, [fields, formData, fileData, isFieldVisible]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +129,21 @@ export function FormRenderer({
 
     setSubmitting(true);
     try {
-      await onSubmit(formData);
+      // Convert file fields to base64 JSON strings
+      const submitData = { ...formData };
+      for (const field of fields) {
+        if (field.type === "file" && fileData[field.id]?.length) {
+          const attachments = await Promise.all(
+            fileData[field.id].map(async ({ file }) => ({
+              fileName: file.name,
+              mimeType: file.type || "application/octet-stream",
+              data: await fileToBase64(file),
+            }))
+          );
+          submitData[field.id] = JSON.stringify(attachments);
+        }
+      }
+      await onSubmit(submitData);
     } finally {
       setSubmitting(false);
     }
@@ -249,6 +272,18 @@ export function FormRenderer({
                     );
                   })}
                 </div>
+              )}
+
+              {field.type === "file" && (
+                <FileUploadField
+                  files={fileData[field.id] || []}
+                  onChange={(files) =>
+                    setFileData((prev) => ({ ...prev, [field.id]: files }))
+                  }
+                  maxFileSize={field.maxFileSize}
+                  acceptedTypes={field.acceptedTypes}
+                  disabled={disabled}
+                />
               )}
 
               {error && <p className="text-sm text-destructive">{error}</p>}

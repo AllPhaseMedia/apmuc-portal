@@ -7,6 +7,7 @@ export type FormFieldType =
   | "select"
   | "checkbox"
   | "radio"
+  | "file"
   | "heading"
   | "divider";
 
@@ -40,6 +41,8 @@ export interface FormField {
   order: number;
   conditions?: FieldCondition[];
   prefillKey?: PrefillKey;
+  maxFileSize?: number; // MB, for file fields
+  acceptedTypes?: string; // comma-separated MIME types, e.g. "image/*,.pdf"
 }
 
 // Form submission handler type
@@ -95,6 +98,7 @@ export const FIELD_TYPES: FieldTypeInfo[] = [
   { type: "select", label: "Dropdown", icon: "ChevronDown", hasOptions: true, hasPlaceholder: true, isLayout: false },
   { type: "radio", label: "Radio", icon: "Circle", hasOptions: true, hasPlaceholder: false, isLayout: false },
   { type: "checkbox", label: "Checkbox", icon: "CheckSquare", hasOptions: true, hasPlaceholder: false, isLayout: false },
+  { type: "file", label: "File Upload", icon: "Upload", hasOptions: false, hasPlaceholder: false, isLayout: false },
   { type: "heading", label: "Heading", icon: "Heading3", hasOptions: false, hasPlaceholder: false, isLayout: true },
   { type: "divider", label: "Divider", icon: "Minus", hasOptions: false, hasPlaceholder: false, isLayout: true },
 ];

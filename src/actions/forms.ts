@@ -5,6 +5,7 @@ import { getAuthUser } from "@/lib/auth";
 import { sendEmail, buildSubmissionEmail, isEmailConfigured } from "@/lib/email";
 import { createConversation } from "@/lib/helpscout";
 import type { ActionResult } from "@/types";
+import type { Attachment } from "@/lib/helpscout";
 import type { FormField, FormSettings } from "@/types/forms";
 import { BRAND } from "@/lib/constants";
 
@@ -46,9 +47,24 @@ export async function submitForm(
       }
     }
 
-    // Build field label/value pairs for email
+    // Extract file attachments from file fields
+    const fileFields = fields.filter((f) => f.type === "file");
+    const allAttachments: Attachment[] = [];
+    for (const ff of fileFields) {
+      const raw = data[ff.id];
+      if (typeof raw === "string" && raw.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(raw) as Attachment[];
+          allAttachments.push(...parsed);
+        } catch {
+          // ignore parse errors
+        }
+      }
+    }
+
+    // Build field label/value pairs for email (exclude file fields)
     const labeledFields = fields
-      .filter((f) => !f.type.match(/^(heading|divider)$/))
+      .filter((f) => !f.type.match(/^(heading|divider|file)$/))
       .map((f) => ({
         label: f.label,
         value: Array.isArray(data[f.id]) ? (data[f.id] as string[]).join(", ") : (data[f.id] as string) || "",
@@ -66,16 +82,32 @@ export async function submitForm(
         emailValue || clientEmail || "unknown@unknown.com",
         nameValue || "Portal User",
         `[${form.name}] New Submission`,
-        bodyHtml
+        bodyHtml,
+        allAttachments.length > 0 ? allAttachments : undefined
       );
     }
 
-    // Store in DB
+    // Store in DB — strip base64 data from file fields, keep only metadata
+    const dbData = { ...data };
+    for (const ff of fileFields) {
+      const raw = dbData[ff.id];
+      if (typeof raw === "string" && raw.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(raw) as Attachment[];
+          dbData[ff.id] = JSON.stringify(
+            parsed.map(({ fileName, mimeType }) => ({ fileName, mimeType }))
+          );
+        } catch {
+          // keep as-is
+        }
+      }
+    }
+
     if (settings.storeSubmissions) {
       await prisma.formSubmission.create({
         data: {
           formId,
-          data: JSON.parse(JSON.stringify(data)),
+          data: JSON.parse(JSON.stringify(dbData)),
           metadata: {
             clientId: clientId || null,
             email: clientEmail || null,

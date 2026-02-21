@@ -1,8 +1,10 @@
 import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NewTicketPage } from "@/components/support/new-ticket-page";
+import { DynamicSupportForm } from "@/components/support/dynamic-support-form";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import type { FormField, FormSettings } from "@/types/forms";
 
 export default async function NewTicketRoute() {
   const user = await requireAuth();
@@ -11,6 +13,17 @@ export default async function NewTicketRoute() {
     where: { clerkUserId: user.clerkUserId },
     select: { name: true, email: true, websiteUrl: true },
   });
+
+  // Check for a dynamic support-request form
+  const dynamicForm = await prisma.form.findFirst({
+    where: { slug: "support-request", isActive: true },
+  });
+
+  const prefill = {
+    name: client?.name ?? user.name,
+    email: client?.email ?? user.email,
+    website: client?.websiteUrl ?? "",
+  };
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -30,11 +43,21 @@ export default async function NewTicketRoute() {
           possible.
         </p>
       </div>
-      <NewTicketPage
-        defaultName={client?.name ?? user.name}
-        defaultEmail={client?.email ?? user.email}
-        defaultWebsite={client?.websiteUrl ?? ""}
-      />
+
+      {dynamicForm ? (
+        <DynamicSupportForm
+          formId={dynamicForm.id}
+          fields={dynamicForm.fields as unknown as FormField[]}
+          settings={dynamicForm.settings as unknown as FormSettings}
+          prefill={prefill}
+        />
+      ) : (
+        <NewTicketPage
+          defaultName={client?.name ?? user.name}
+          defaultEmail={client?.email ?? user.email}
+          defaultWebsite={client?.websiteUrl ?? ""}
+        />
+      )}
     </div>
   );
 }
