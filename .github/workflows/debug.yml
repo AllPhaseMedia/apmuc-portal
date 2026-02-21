@@ -14,15 +14,25 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            echo "=== WHO HOLDS PORT 3000 ==="
-            sudo ss -tlnp | grep 3000 || true
-            sudo lsof -i :3000 2>/dev/null || true
-            echo "=== NGINX CONFIG ==="
-            sudo cat /etc/nginx/sites-enabled/*clientsupport* 2>/dev/null || true
-            sudo grep -r "3000" /etc/nginx/ 2>/dev/null || true
-            echo "=== XCLOUD APP CONFIG ==="
-            ls -la /var/www/ 2>/dev/null || true
-            echo "=== ALL PM2 PROCESSES (ALL USERS) ==="
-            sudo pm2 list 2>/dev/null || true
-            echo "=== SYSTEMD SERVICES WITH NODE ==="
-            systemctl list-units --type=service --all 2>/dev/null | grep -i "node\|next\|pm2\|client" || echo "none found"
+            echo "=== WHOAMI AND HOME ==="
+            whoami
+            echo $HOME
+            echo "=== PM2 INFO ==="
+            which pm2
+            echo "PM2_HOME=$PM2_HOME"
+            ls -la ~/.pm2/ 2>/dev/null | head -20
+            echo "=== PORT 3000 (no sudo) ==="
+            ss -tln | grep 3000
+            echo "=== ALL PROCESSES FOR THIS USER ==="
+            ps -u $(whoami) -f
+            echo "=== PKILL ALL NODE FOR THIS USER ==="
+            pkill -u $(whoami) -f "node" 2>/dev/null || true
+            sleep 2
+            echo "=== PORT 3000 AFTER PKILL ==="
+            ss -tln | grep 3000 || echo "Port 3000 is FREE"
+            echo "=== TRY PM2 START ==="
+            cd /var/www/new.clientsupport.app
+            pm2 start ecosystem.config.js
+            sleep 3
+            pm2 status
+            pm2 logs apmuc-portal --nostream --lines 10
