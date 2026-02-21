@@ -1,9 +1,11 @@
 /**
  * One-time WordPress → Clerk user migration script.
  *
- * Reads WordPress users, matches them to Client/ClientContact records,
- * and creates Clerk users with phpass password import so existing
- * WP passwords continue to work.
+ * Imports ALL WordPress users into Clerk with phpass password import
+ * so existing WP passwords continue to work. If a matching Client or
+ * ClientContact record exists, it auto-links. Otherwise, linking
+ * happens automatically later when you create Clients in the admin panel
+ * (via the Clerk webhook or on first login).
  *
  * Required env vars:
  *   WP_DB_HOST, WP_DB_PORT, WP_DB_USER, WP_DB_PASS, WP_DB_NAME
@@ -45,13 +47,14 @@ async function main() {
 
   // 2. Read WP users
   const [rows] = await wpDb.execute<mysql.RowDataPacket[]>(
-    "SELECT user_email, display_name, user_pass FROM wp_users"
+    "SELECT user_email, display_name, user_pass FROM wpno_users"
   );
   const wpUsers = rows as unknown as WPUser[];
   console.log(`Found ${wpUsers.length} WordPress users.\n`);
 
   let created = 0;
   let skipped = 0;
+  let linked = 0;
   let errors = 0;
 
   for (const wpUser of wpUsers) {
@@ -62,78 +65,82 @@ async function main() {
       continue;
     }
 
-    // 3. Check if email matches a Client or ClientContact
-    const client = await prisma.client.findUnique({ where: { email } });
-    const contacts = await prisma.clientContact.findMany({ where: { email } });
-
-    if (!client && contacts.length === 0) {
-      console.log(`  SKIP: ${email} — no matching Client or ClientContact`);
-      skipped++;
-      continue;
-    }
-
-    // 4. Check if Clerk user already exists for this email
+    // 3. Check if Clerk user already exists for this email
     const existingClerkUsers = await clerk.users.getUserList({
       emailAddress: [email],
     });
 
     if (existingClerkUsers.data.length > 0) {
       const clerkId = existingClerkUsers.data[0].id;
-      console.log(`  SKIP: ${email} — Clerk user already exists (${clerkId})`);
+      console.log(`  EXISTS: ${email} — Clerk user ${clerkId}`);
 
-      // Still link if not linked
+      // Still try to link if Client/Contact records exist
+      const client = await prisma.client.findUnique({ where: { email } });
       if (client && !client.clerkUserId) {
         await prisma.client.update({
           where: { id: client.id },
           data: { clerkUserId: clerkId },
         });
         console.log(`    → Linked to Client ${client.id}`);
+        linked++;
       }
-      if (contacts.length > 0) {
-        await prisma.clientContact.updateMany({
-          where: { email, clerkUserId: null },
-          data: { clerkUserId: clerkId },
-        });
-        console.log(`    → Linked to ${contacts.length} ClientContact(s)`);
-      }
+      await prisma.clientContact.updateMany({
+        where: { email, clerkUserId: null },
+        data: { clerkUserId: clerkId },
+      });
 
       skipped++;
       continue;
     }
 
-    // 5. Create Clerk user with phpass password import
+    // 4. Create Clerk user with appropriate password hasher
     try {
       const nameParts = wpUser.display_name.split(" ");
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
 
+      // Detect hash format:
+      // $P$ or $H$ = phpass (older WP)
+      // $wp$2y$ = WordPress bcrypt (newer WP) — strip $wp prefix for standard bcrypt
+      let passwordHasher: string;
+      let passwordDigest: string;
+
+      if (wpUser.user_pass.startsWith("$wp$")) {
+        passwordHasher = "bcrypt";
+        passwordDigest = wpUser.user_pass.replace(/^\$wp\$/, "$");
+      } else {
+        passwordHasher = "phpass";
+        passwordDigest = wpUser.user_pass;
+      }
+
       const clerkUser = await clerk.users.createUser({
         emailAddress: [email],
         firstName,
         lastName,
-        passwordHasher: "phpass",
-        passwordDigest: wpUser.user_pass,
+        passwordHasher,
+        passwordDigest,
         skipPasswordChecks: true,
       });
 
       console.log(`  CREATE: ${email} → Clerk user ${clerkUser.id}`);
 
-      // 6. Link to Client record
+      // 5. Auto-link to Client/ClientContact if they exist
+      const client = await prisma.client.findUnique({ where: { email } });
       if (client && !client.clerkUserId) {
         await prisma.client.update({
           where: { id: client.id },
           data: { clerkUserId: clerkUser.id },
         });
         console.log(`    → Linked to Client ${client.id}`);
+        linked++;
       }
-
-      // 7. Link to ClientContact records
-      if (contacts.length > 0) {
-        await prisma.clientContact.updateMany({
-          where: { email, clerkUserId: null },
-          data: { clerkUserId: clerkUser.id },
-        });
-        console.log(`    → Linked to ${contacts.length} ClientContact(s)`);
+      const contactResult = await prisma.clientContact.updateMany({
+        where: { email, clerkUserId: null },
+        data: { clerkUserId: clerkUser.id },
+      });
+      if (contactResult.count > 0) {
+        console.log(`    → Linked to ${contactResult.count} ClientContact(s)`);
+        linked++;
       }
 
       created++;
@@ -148,8 +155,10 @@ async function main() {
 
   console.log(`\n=== Migration Complete ===`);
   console.log(`  Created: ${created}`);
-  console.log(`  Skipped: ${skipped}`);
+  console.log(`  Skipped: ${skipped} (already in Clerk)`);
+  console.log(`  Linked:  ${linked}`);
   console.log(`  Errors:  ${errors}`);
+  console.log(`\nNext: Create Clients in the admin panel. Users will auto-link by email when they log in.`);
 }
 
 main().catch((err) => {
