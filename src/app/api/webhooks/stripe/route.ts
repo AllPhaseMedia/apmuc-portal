@@ -56,14 +56,7 @@ export async function POST(req: NextRequest) {
       }
 
       case "customer.updated": {
-        // Sync email changes from Stripe back to our DB
-        const customer = event.data.object as Stripe.Customer;
-        if (customer.email) {
-          await prisma.client.updateMany({
-            where: { stripeCustomerId: customer.id },
-            data: { email: customer.email },
-          });
-        }
+        // Email is now managed via Clerk, not Stripe
         break;
       }
     }

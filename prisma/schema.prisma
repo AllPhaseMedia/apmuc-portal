@@ -42,8 +42,6 @@ enum SubmissionStatus {
 
 model Client {
   id                  String          @id @default(uuid())
-  clerkUserId         String?         @unique
-  email               String          @unique
   name                String
   websiteUrl          String?
   stripeCustomerId    String?         @unique
@@ -60,18 +58,17 @@ model Client {
   siteChecks          SiteCheck[]
   contacts            ClientContact[]
 
-  @@index([clerkUserId])
-  @@index([email])
   @@index([stripeCustomerId])
 }
 
 model ClientContact {
   id            String   @id @default(uuid())
   clientId      String
-  clerkUserId   String?
+  clerkUserId   String
   email         String
   name          String
   roleLabel     String?
+  isPrimary     Boolean  @default(false)
   canDashboard  Boolean  @default(true)
   canBilling    Boolean  @default(true)
   canAnalytics  Boolean  @default(true)
@@ -84,7 +81,7 @@ model ClientContact {
 
   client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  @@unique([clientId, email])
+  @@unique([clientId, clerkUserId])
   @@index([clerkUserId])
   @@index([email])
   @@index([clientId])

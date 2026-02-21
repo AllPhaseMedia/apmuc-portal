@@ -21,12 +21,13 @@ const ALL_TRUE: ContactPermissions = {
 export type ClientContext = {
   client: Client & { services: ClientService[] };
   accessType: "primary" | "contact";
-  contact: ClientContact | null;
+  contact: ClientContact;
   permissions: ContactPermissions;
   userEmail: string;
 };
 
 function permissionsFromContact(contact: ClientContact): ContactPermissions {
+  if (contact.isPrimary) return ALL_TRUE;
   return {
     dashboard: contact.canDashboard,
     billing: contact.canBilling,
@@ -43,11 +44,8 @@ const clientInclude = { services: true } as const;
  * Resolve which client the current user is viewing and their permissions.
  *
  * Resolution order:
- * 1. Cookie `apmuc_active_client` → validate user has access
- * 2. Client.clerkUserId match → primary, all permissions
- * 3. ClientContact.clerkUserId match → contact, permissions from record
- * 4. Email-based Client match (auto-link clerkUserId)
- * 5. Email-based ClientContact match (auto-link clerkUserId)
+ * 1. Cookie `apmuc_active_client` → validate via ClientContact
+ * 2. First active ClientContact for this clerkUserId
  */
 export const resolveClientContext = cache(async (): Promise<ClientContext | null> => {
   const user = await getAuthUser();
@@ -56,81 +54,26 @@ export const resolveClientContext = cache(async (): Promise<ClientContext | null
   const cookieStore = await cookies();
   const activeClientId = cookieStore.get(ACTIVE_CLIENT_COOKIE)?.value;
 
-  // If cookie is set, validate access and return that client
+  // If cookie is set, validate access via ClientContact
   if (activeClientId) {
     const ctx = await resolveForClient(activeClientId, user.clerkUserId, user.email);
     if (ctx) return ctx;
     // Cookie invalid — fall through to auto-resolve
   }
 
-  // 1. Primary: Client.clerkUserId match
-  let client = await prisma.client.findFirst({
-    where: { clerkUserId: user.clerkUserId, isActive: true },
-    include: clientInclude,
-  });
-
-  if (client) {
-    return {
-      client,
-      accessType: "primary",
-      contact: null,
-      permissions: ALL_TRUE,
-      userEmail: user.email,
-    };
-  }
-
-  // 2. Contact: ClientContact.clerkUserId match
+  // Find first active ClientContact for this user
   const contact = await prisma.clientContact.findFirst({
     where: { clerkUserId: user.clerkUserId, isActive: true },
     include: { client: { include: clientInclude } },
+    orderBy: { createdAt: "asc" },
   });
 
   if (contact && contact.client.isActive) {
     return {
       client: contact.client,
-      accessType: "contact",
+      accessType: contact.isPrimary ? "primary" : "contact",
       contact,
       permissions: permissionsFromContact(contact),
-      userEmail: user.email,
-    };
-  }
-
-  // 3. Fallback: email-based Client match (auto-link)
-  client = await prisma.client.findFirst({
-    where: { email: user.email, clerkUserId: null, isActive: true },
-    include: clientInclude,
-  });
-
-  if (client) {
-    await prisma.client.update({
-      where: { id: client.id },
-      data: { clerkUserId: user.clerkUserId },
-    });
-    return {
-      client,
-      accessType: "primary",
-      contact: null,
-      permissions: ALL_TRUE,
-      userEmail: user.email,
-    };
-  }
-
-  // 4. Fallback: email-based ClientContact match (auto-link)
-  const emailContact = await prisma.clientContact.findFirst({
-    where: { email: user.email, clerkUserId: null, isActive: true },
-    include: { client: { include: clientInclude } },
-  });
-
-  if (emailContact && emailContact.client.isActive) {
-    await prisma.clientContact.updateMany({
-      where: { email: user.email, clerkUserId: null },
-      data: { clerkUserId: user.clerkUserId },
-    });
-    return {
-      client: emailContact.client,
-      accessType: "contact",
-      contact: emailContact,
-      permissions: permissionsFromContact(emailContact),
       userEmail: user.email,
     };
   }
@@ -146,44 +89,24 @@ async function resolveForClient(
   clerkUserId: string,
   email: string
 ): Promise<ClientContext | null> {
-  const client = await prisma.client.findFirst({
-    where: { id: clientId, isActive: true },
-    include: clientInclude,
-  });
-
-  if (!client) return null;
-
-  // Primary owner?
-  if (client.clerkUserId === clerkUserId) {
-    return {
-      client,
-      accessType: "primary",
-      contact: null,
-      permissions: ALL_TRUE,
-      userEmail: email,
-    };
-  }
-
-  // Contact?
   const contact = await prisma.clientContact.findFirst({
     where: {
       clientId,
       clerkUserId,
       isActive: true,
     },
+    include: { client: { include: clientInclude } },
   });
 
-  if (contact) {
-    return {
-      client,
-      accessType: "contact",
-      contact,
-      permissions: permissionsFromContact(contact),
-      userEmail: email,
-    };
-  }
+  if (!contact || !contact.client.isActive) return null;
 
-  return null;
+  return {
+    client: contact.client,
+    accessType: contact.isPrimary ? "primary" : "contact",
+    contact,
+    permissions: permissionsFromContact(contact),
+    userEmail: email,
+  };
 }
 
 /**
@@ -195,30 +118,20 @@ export const getAccessibleClients = cache(async (): Promise<
   const user = await getAuthUser();
   if (!user) return [];
 
-  const results: { id: string; name: string; accessType: "primary" | "contact" }[] = [];
-
-  // Clients where user is primary
-  const primaryClients = await prisma.client.findMany({
-    where: { clerkUserId: user.clerkUserId, isActive: true },
-    select: { id: true, name: true },
-  });
-  for (const c of primaryClients) {
-    results.push({ ...c, accessType: "primary" });
-  }
-
-  // Clients where user is a contact
   const contacts = await prisma.clientContact.findMany({
     where: { clerkUserId: user.clerkUserId, isActive: true },
     include: {
       client: { select: { id: true, name: true, isActive: true } },
     },
   });
+
+  const results: { id: string; name: string; accessType: "primary" | "contact" }[] = [];
   for (const c of contacts) {
     if (c.client.isActive && !results.some((r) => r.id === c.client.id)) {
       results.push({
         id: c.client.id,
         name: c.client.name,
-        accessType: "contact",
+        accessType: c.isPrimary ? "primary" : "contact",
       });
     }
   }

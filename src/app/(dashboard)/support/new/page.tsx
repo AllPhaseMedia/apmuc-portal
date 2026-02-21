@@ -9,9 +9,10 @@ import type { FormField, FormSettings } from "@/types/forms";
 export default async function NewTicketRoute() {
   const user = await requireAuth();
 
-  const client = await prisma.client.findFirst({
-    where: { clerkUserId: user.clerkUserId },
-    select: { name: true, email: true, websiteUrl: true },
+  // Get website from ClientContact → Client
+  const contact = await prisma.clientContact.findFirst({
+    where: { clerkUserId: user.clerkUserId, isActive: true },
+    include: { client: { select: { name: true, websiteUrl: true } } },
   });
 
   // Check for a dynamic support-request form
@@ -20,9 +21,9 @@ export default async function NewTicketRoute() {
   });
 
   const prefill = {
-    name: client?.name ?? user.name,
-    email: client?.email ?? user.email,
-    website: client?.websiteUrl ?? "",
+    name: contact?.client.name ?? user.name,
+    email: user.email,
+    website: contact?.client.websiteUrl ?? "",
   };
 
   return (
@@ -53,9 +54,9 @@ export default async function NewTicketRoute() {
         />
       ) : (
         <NewTicketPage
-          defaultName={client?.name ?? user.name}
-          defaultEmail={client?.email ?? user.email}
-          defaultWebsite={client?.websiteUrl ?? ""}
+          defaultName={contact?.client.name ?? user.name}
+          defaultEmail={user.email}
+          defaultWebsite={contact?.client.websiteUrl ?? ""}
         />
       )}
     </div>

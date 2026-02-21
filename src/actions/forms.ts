@@ -38,12 +38,13 @@ export async function submitForm(
     let clientEmail: string | undefined;
 
     if (user) {
-      const client = await prisma.client.findFirst({
-        where: { clerkUserId: user.clerkUserId },
+      clientEmail = user.email;
+      const contact = await prisma.clientContact.findFirst({
+        where: { clerkUserId: user.clerkUserId, isActive: true },
+        select: { clientId: true },
       });
-      if (client) {
-        clientId = client.id;
-        clientEmail = client.email;
+      if (contact) {
+        clientId = contact.clientId;
       }
     }
 

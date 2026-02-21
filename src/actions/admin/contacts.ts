@@ -7,10 +7,11 @@ import type { ActionResult } from "@/types";
 import type { ClientContact } from "@prisma/client";
 import { z } from "zod";
 import { clerkClient } from "@clerk/nextjs/server";
+import { listClerkUsers, type ClerkUserInfo } from "@/actions/admin/impersonate";
 
-const contactSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  name: z.string().min(1, "Name is required"),
+const addContactSchema = z.object({
+  clerkUserId: z.string().min(1, "User is required"),
+  isPrimary: z.boolean().default(false),
   roleLabel: z.string().optional(),
   canDashboard: z.boolean().default(true),
   canBilling: z.boolean().default(true),
@@ -18,10 +19,23 @@ const contactSchema = z.object({
   canUptime: z.boolean().default(true),
   canSupport: z.boolean().default(true),
   canSiteHealth: z.boolean().default(true),
-  isActive: z.boolean().default(true),
 });
 
-export type ContactFormValues = z.infer<typeof contactSchema>;
+export type AddContactValues = z.infer<typeof addContactSchema>;
+
+const updateContactSchema = z.object({
+  isPrimary: z.boolean().optional(),
+  roleLabel: z.string().optional(),
+  canDashboard: z.boolean().optional(),
+  canBilling: z.boolean().optional(),
+  canAnalytics: z.boolean().optional(),
+  canUptime: z.boolean().optional(),
+  canSupport: z.boolean().optional(),
+  canSiteHealth: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateContactValues = z.infer<typeof updateContactSchema>;
 
 export async function getClientContacts(
   clientId: string
@@ -43,45 +57,45 @@ export async function getClientContacts(
 
 export async function addClientContact(
   clientId: string,
-  values: ContactFormValues
+  values: AddContactValues
 ): Promise<ActionResult<ClientContact>> {
   try {
     await requireAdmin();
-    const parsed = contactSchema.safeParse(values);
+    const parsed = addContactSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
     }
 
     const data = parsed.data;
 
-    // Attempt to find existing Clerk user by email to auto-link
-    let clerkUserId: string | null = null;
-    try {
-      const clerk = await clerkClient();
-      const users = await clerk.users.getUserList({
-        emailAddress: [data.email],
+    // Look up Clerk user for email/name
+    const clerk = await clerkClient();
+    const clerkUser = await clerk.users.getUser(data.clerkUserId);
+    const email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
+    const name = `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() || email;
+
+    // If setting as primary, un-set existing primary for this client
+    if (data.isPrimary) {
+      await prisma.clientContact.updateMany({
+        where: { clientId, isPrimary: true },
+        data: { isPrimary: false },
       });
-      if (users.data.length > 0) {
-        clerkUserId = users.data[0].id;
-      }
-    } catch {
-      // Clerk lookup failed — continue without linking
     }
 
     const contact = await prisma.clientContact.create({
       data: {
         clientId,
-        email: data.email,
-        name: data.name,
+        clerkUserId: data.clerkUserId,
+        email,
+        name,
         roleLabel: data.roleLabel || null,
-        clerkUserId,
+        isPrimary: data.isPrimary,
         canDashboard: data.canDashboard,
         canBilling: data.canBilling,
         canAnalytics: data.canAnalytics,
         canUptime: data.canUptime,
         canSupport: data.canSupport,
         canSiteHealth: data.canSiteHealth,
-        isActive: data.isActive,
       },
     });
 
@@ -89,7 +103,7 @@ export async function addClientContact(
     return { success: true, data: contact };
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unique constraint")) {
-      return { success: false, error: "A contact with this email already exists for this client" };
+      return { success: false, error: "This user is already linked to this client" };
     }
     return {
       success: false,
@@ -100,16 +114,30 @@ export async function addClientContact(
 
 export async function updateClientContact(
   contactId: string,
-  values: Partial<ContactFormValues>
+  values: UpdateContactValues
 ): Promise<ActionResult<ClientContact>> {
   try {
     await requireAdmin();
 
+    const existing = await prisma.clientContact.findUnique({
+      where: { id: contactId },
+    });
+    if (!existing) {
+      return { success: false, error: "Contact not found" };
+    }
+
+    // If setting as primary, un-set existing primary for this client
+    if (values.isPrimary === true && !existing.isPrimary) {
+      await prisma.clientContact.updateMany({
+        where: { clientId: existing.clientId, isPrimary: true },
+        data: { isPrimary: false },
+      });
+    }
+
     const contact = await prisma.clientContact.update({
       where: { id: contactId },
       data: {
-        ...(values.name !== undefined && { name: values.name }),
-        ...(values.email !== undefined && { email: values.email }),
+        ...(values.isPrimary !== undefined && { isPrimary: values.isPrimary }),
         ...(values.roleLabel !== undefined && { roleLabel: values.roleLabel || null }),
         ...(values.canDashboard !== undefined && { canDashboard: values.canDashboard }),
         ...(values.canBilling !== undefined && { canBilling: values.canBilling }),
@@ -147,6 +175,34 @@ export async function removeClientContact(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to remove contact",
+    };
+  }
+}
+
+export async function listAvailableUsers(
+  clientId: string
+): Promise<ActionResult<ClerkUserInfo[]>> {
+  try {
+    await requireAdmin();
+
+    // Get all Clerk users
+    const allUsers = await listClerkUsers();
+
+    // Get already-linked users for this client
+    const linkedContacts = await prisma.clientContact.findMany({
+      where: { clientId },
+      select: { clerkUserId: true },
+    });
+    const linkedIds = new Set(linkedContacts.map((c) => c.clerkUserId));
+
+    // Filter out already-linked users
+    const available = allUsers.filter((u) => !linkedIds.has(u.id));
+
+    return { success: true, data: available };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to list users",
     };
   }
 }

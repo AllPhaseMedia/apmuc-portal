@@ -136,17 +136,17 @@ export async function submitFeedback(
   try {
     const user = await requireAuth();
 
-    // Find client record for this user
-    const client = await prisma.client.findFirst({
-      where: { clerkUserId: user.clerkUserId },
-      select: { id: true },
+    // Find client via ClientContact for this user
+    const contact = await prisma.clientContact.findFirst({
+      where: { clerkUserId: user.clerkUserId, isActive: true },
+      select: { clientId: true },
     });
 
     await prisma.articleFeedback.create({
       data: {
         articleId,
         helpful,
-        clientId: client?.id ?? null,
+        clientId: contact?.clientId ?? null,
       },
     });
 

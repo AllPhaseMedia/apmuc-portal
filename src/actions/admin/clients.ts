@@ -50,7 +50,6 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
     const data = parsed.data;
     const client = await prisma.client.create({
       data: {
-        email: data.email,
         name: data.name,
         websiteUrl: data.websiteUrl || null,
         stripeCustomerId: data.stripeCustomerId || null,
@@ -66,9 +65,6 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
     revalidatePath("/admin/clients");
     return { success: true, data: client };
   } catch (error) {
-    if (error instanceof Error && error.message.includes("Unique constraint")) {
-      return { success: false, error: "A client with this email already exists" };
-    }
     return { success: false, error: error instanceof Error ? error.message : "Failed to create client" };
   }
 }
@@ -85,7 +81,6 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
     const client = await prisma.client.update({
       where: { id },
       data: {
-        email: data.email,
         name: data.name,
         websiteUrl: data.websiteUrl || null,
         stripeCustomerId: data.stripeCustomerId || null,

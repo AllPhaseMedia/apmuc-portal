@@ -37,21 +37,18 @@ export default async function PublicForm({ params }: PageProps) {
   try {
     const user = await getAuthUser();
     if (user) {
-      const client = await prisma.client.findFirst({
-        where: { clerkUserId: user.clerkUserId },
+      // Always use Clerk auth email
+      prefill = {
+        name: user.name || undefined,
+        email: user.email || undefined,
+      };
+      // If linked to a client, add website
+      const contact = await prisma.clientContact.findFirst({
+        where: { clerkUserId: user.clerkUserId, isActive: true },
+        include: { client: { select: { websiteUrl: true } } },
       });
-      if (client) {
-        prefill = {
-          name: client.name,
-          email: client.email,
-          website: client.websiteUrl || undefined,
-        };
-      } else {
-        // No client record (e.g. admin) — prefill from Clerk user
-        prefill = {
-          name: user.name || undefined,
-          email: user.email || undefined,
-        };
+      if (contact?.client.websiteUrl) {
+        prefill.website = contact.client.websiteUrl;
       }
     }
   } catch {

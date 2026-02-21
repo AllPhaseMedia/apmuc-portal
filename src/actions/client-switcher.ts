@@ -10,20 +10,14 @@ const ACTIVE_CLIENT_COOKIE = "apmuc_active_client";
 export async function switchActiveClient(clientId: string) {
   const user = await requireAuth();
 
-  // Validate user has access to this client (primary or contact)
-  const isPrimary = await prisma.client.findFirst({
-    where: { id: clientId, clerkUserId: user.clerkUserId, isActive: true },
+  // Validate user has access via ClientContact
+  const contact = await prisma.clientContact.findFirst({
+    where: { clientId, clerkUserId: user.clerkUserId, isActive: true },
     select: { id: true },
   });
 
-  if (!isPrimary) {
-    const isContact = await prisma.clientContact.findFirst({
-      where: { clientId, clerkUserId: user.clerkUserId, isActive: true },
-      select: { id: true },
-    });
-    if (!isContact) {
-      throw new Error("Access denied");
-    }
+  if (!contact) {
+    throw new Error("Access denied");
   }
 
   const cookieStore = await cookies();

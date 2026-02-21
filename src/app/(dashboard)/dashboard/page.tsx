@@ -88,7 +88,7 @@ export default async function DashboardPage() {
             services={upsellServices}
             prefill={{
               name: client.name,
-              email: client.email,
+              email: user.email,
               website: client.websiteUrl || undefined,
             }}
           />

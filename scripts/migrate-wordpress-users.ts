@@ -74,20 +74,15 @@ async function main() {
       const clerkId = existingClerkUsers.data[0].id;
       console.log(`  EXISTS: ${email} — Clerk user ${clerkId}`);
 
-      // Still try to link if Client/Contact records exist
-      const client = await prisma.client.findUnique({ where: { email } });
-      if (client && !client.clerkUserId) {
-        await prisma.client.update({
-          where: { id: client.id },
-          data: { clerkUserId: clerkId },
-        });
-        console.log(`    → Linked to Client ${client.id}`);
-        linked++;
-      }
-      await prisma.clientContact.updateMany({
+      // Update cached email/name on existing ClientContact records
+      const contactResult = await prisma.clientContact.updateMany({
         where: { email, clerkUserId: null },
         data: { clerkUserId: clerkId },
       });
+      if (contactResult.count > 0) {
+        console.log(`    → Linked to ${contactResult.count} ClientContact(s)`);
+        linked++;
+      }
 
       skipped++;
       continue;
@@ -124,16 +119,7 @@ async function main() {
 
       console.log(`  CREATE: ${email} → Clerk user ${clerkUser.id}`);
 
-      // 5. Auto-link to Client/ClientContact if they exist
-      const client = await prisma.client.findUnique({ where: { email } });
-      if (client && !client.clerkUserId) {
-        await prisma.client.update({
-          where: { id: client.id },
-          data: { clerkUserId: clerkUser.id },
-        });
-        console.log(`    → Linked to Client ${client.id}`);
-        linked++;
-      }
+      // 5. Auto-link to ClientContact records if they exist
       const contactResult = await prisma.clientContact.updateMany({
         where: { email, clerkUserId: null },
         data: { clerkUserId: clerkUser.id },

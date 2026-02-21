@@ -10,10 +10,10 @@ async function main() {
   // ============================================================
 
   const client1 = await prisma.client.upsert({
-    where: { email: "demo@example.com" },
+    where: { id: "seed-client-demo" },
     update: {},
     create: {
-      email: "demo@example.com",
+      id: "seed-client-demo",
       name: "Demo Agency",
       websiteUrl: "https://example.com",
       stripeCustomerId: null,
@@ -24,10 +24,10 @@ async function main() {
   });
 
   const client2 = await prisma.client.upsert({
-    where: { email: "acme@example.com" },
+    where: { id: "seed-client-acme" },
     update: {},
     create: {
-      email: "acme@example.com",
+      id: "seed-client-acme",
       name: "Acme Corporation",
       websiteUrl: "https://acme-example.com",
       isActive: true,

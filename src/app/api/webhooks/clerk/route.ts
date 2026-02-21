@@ -48,34 +48,14 @@ export async function POST(req: Request) {
 
     const name = `${first_name ?? ""} ${last_name ?? ""}`.trim() || email;
 
-    // Link Clerk user to existing Client record (matched by email)
-    const existingClient = await prisma.client.findUnique({
-      where: { email },
+    // Update cached email/name on existing ClientContact records
+    const result = await prisma.clientContact.updateMany({
+      where: { clerkUserId: id },
+      data: { email, name },
     });
 
-    if (existingClient) {
-      await prisma.client.update({
-        where: { email },
-        data: {
-          clerkUserId: id,
-          name,
-        },
-      });
-      console.log(`Clerk webhook: linked ${email} to client ${existingClient.id}`);
-    } else {
-      console.log(`Clerk webhook: ${eventType} — no matching client for ${email}`);
-    }
-
-    // Link to any ClientContact records with matching email
-    const contactsToLink = await prisma.clientContact.findMany({
-      where: { email, clerkUserId: null },
-    });
-    if (contactsToLink.length > 0) {
-      await prisma.clientContact.updateMany({
-        where: { email, clerkUserId: null },
-        data: { clerkUserId: id },
-      });
-      console.log(`Clerk webhook: linked ${email} to ${contactsToLink.length} contact record(s)`);
+    if (result.count > 0) {
+      console.log(`Clerk webhook: updated ${result.count} contact(s) for ${email}`);
     }
   }
 
