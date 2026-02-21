@@ -11,6 +11,7 @@ import {
   Users,
   FileText,
   Package,
+  ClipboardList,
   Settings,
   UserCog,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const icons = {
   Users,
   FileText,
   Package,
+  ClipboardList,
   Settings,
   UserCog,
 } as const;
@@ -56,6 +58,7 @@ const staffNav = [
   { label: "Clients", href: "/admin/clients", icon: "Users" },
   { label: "Knowledge Base", href: "/admin/knowledge-base", icon: "FileText" },
   { label: "Services", href: "/admin/services", icon: "Package" },
+  { label: "Forms", href: "/admin/forms", icon: "ClipboardList" },
 ] as const;
 
 // Admin-only nav items (not shown to employees)
