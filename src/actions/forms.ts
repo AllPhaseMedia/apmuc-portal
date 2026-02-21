@@ -64,7 +64,7 @@ export async function submitForm(
 
     // Build field label/value pairs for email (exclude file fields)
     const labeledFields = fields
-      .filter((f) => !f.type.match(/^(heading|divider|file)$/))
+      .filter((f) => !f.type.match(/^(heading|divider|file|html)$/))
       .map((f) => ({
         label: f.label,
         value: Array.isArray(data[f.id]) ? (data[f.id] as string[]).join(", ") : (data[f.id] as string) || "",
@@ -117,7 +117,7 @@ export async function submitForm(
     }
 
     // Send email notification
-    if (settings.emailNotification && settings.emailTo && isEmailConfigured()) {
+    if (settings.emailNotification && settings.emailTo && await isEmailConfigured()) {
       const adminUrl = `${BRAND.url}/admin/forms/${formId}/submissions`;
       const html = buildSubmissionEmail({
         formName: form.name,

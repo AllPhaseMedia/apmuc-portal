@@ -11,6 +11,7 @@ import {
   Circle,
   CheckSquare,
   Upload,
+  Code,
   Heading3,
   Minus,
 } from "lucide-react";
@@ -26,6 +27,7 @@ const ICONS: Record<string, React.ElementType> = {
   Circle,
   CheckSquare,
   Upload,
+  Code,
   Heading3,
   Minus,
 };

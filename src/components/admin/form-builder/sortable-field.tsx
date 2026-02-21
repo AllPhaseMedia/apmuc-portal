@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { GripVertical, Trash2, Settings2 } from "lucide-react";
 import {
-  Type, AlignLeft, Mail, Phone, ChevronDown, Circle, CheckSquare, Heading3, Minus,
+  Type, AlignLeft, Mail, Phone, ChevronDown, Circle, CheckSquare, Upload, Code, Heading3, Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { FormField } from "@/types/forms";
@@ -13,7 +13,7 @@ import type { FormField } from "@/types/forms";
 const ICONS: Record<string, React.ElementType> = {
   text: Type, textarea: AlignLeft, email: Mail, phone: Phone,
   select: ChevronDown, radio: Circle, checkbox: CheckSquare,
-  heading: Heading3, divider: Minus,
+  file: Upload, html: Code, heading: Heading3, divider: Minus,
 };
 
 interface SortableFieldProps {

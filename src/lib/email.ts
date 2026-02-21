@@ -1,21 +1,37 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
+import { prisma } from "@/lib/prisma";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+/** Get a single SMTP setting: DB first, then env fallback */
+async function getSetting(key: string, envKey: string, fallback = ""): Promise<string> {
+  try {
+    const row = await prisma.systemSetting.findUnique({ where: { key } });
+    if (row?.value) return row.value;
+  } catch {
+    // Table might not exist yet — fall through to env
+  }
+  return process.env[envKey] ?? fallback;
+}
 
-const FROM_ADDRESS = process.env.SMTP_FROM || "noreply@clientsupport.app";
+/** Build a fresh nodemailer transporter from DB/env settings */
+export async function getSmtpTransporter(): Promise<Transporter | null> {
+  const host = await getSetting("smtpHost", "SMTP_HOST");
+  const user = await getSetting("smtpUser", "SMTP_USER");
+  const pass = await getSetting("smtpPass", "SMTP_PASS");
 
-export function isEmailConfigured(): boolean {
-  return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  if (!host || !user || !pass) return null;
+
+  const port = Number(await getSetting("smtpPort", "SMTP_PORT", "587"));
+  const secure = (await getSetting("smtpSecure", "SMTP_SECURE", "false")) === "true";
+
+  return nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
+}
+
+export async function isEmailConfigured(): Promise<boolean> {
+  const transporter = await getSmtpTransporter();
+  return transporter !== null;
 }
 
 interface SendEmailOptions {
@@ -26,13 +42,16 @@ interface SendEmailOptions {
 }
 
 export async function sendEmail({ to, subject, html, text }: SendEmailOptions): Promise<void> {
-  if (!isEmailConfigured()) {
+  const transporter = await getSmtpTransporter();
+  if (!transporter) {
     console.warn("[email] SMTP not configured, skipping email send");
     return;
   }
 
+  const from = await getSetting("smtpFrom", "SMTP_FROM", "noreply@clientsupport.app");
+
   await transporter.sendMail({
-    from: FROM_ADDRESS,
+    from,
     to,
     subject,
     html,

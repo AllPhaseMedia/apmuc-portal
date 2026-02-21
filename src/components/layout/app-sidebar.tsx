@@ -64,6 +64,7 @@ const staffNav = [
 // Admin-only nav items (not shown to employees)
 const adminOnlyNav = [
   { label: "Users", href: "/admin/users", icon: "UserCog" },
+  { label: "Settings", href: "/admin/settings", icon: "Settings" },
 ] as const;
 
 type Props = {

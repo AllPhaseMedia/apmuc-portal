@@ -25,7 +25,7 @@ interface FieldConfigProps {
 export function FieldConfig({ field, allFields, onChange, onClose }: FieldConfigProps) {
   const hasOptions = ["select", "radio", "checkbox"].includes(field.type);
   const hasPlaceholder = ["text", "textarea", "email", "phone", "select"].includes(field.type);
-  const isLayout = ["heading", "divider"].includes(field.type);
+  const isLayout = ["heading", "divider", "html"].includes(field.type);
 
   const otherFields = allFields.filter(
     (f) => f.id !== field.id && !["heading", "divider"].includes(f.type)
@@ -113,6 +113,23 @@ export function FieldConfig({ field, allFields, onChange, onClose }: FieldConfig
               <SelectItem value="serviceName">Service Name</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {/* HTML content */}
+      {field.type === "html" && (
+        <div className="space-y-1.5">
+          <Label>HTML Content</Label>
+          <Textarea
+            value={field.htmlContent || ""}
+            onChange={(e) => onChange({ ...field, htmlContent: e.target.value })}
+            placeholder="<p>Enter your HTML content here...</p>"
+            rows={6}
+            className="font-mono text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            HTML rendered as-is in the form. Use for instructions, descriptions, etc.
+          </p>
         </div>
       )}
 

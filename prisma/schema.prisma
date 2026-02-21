@@ -211,3 +211,9 @@ model FormSubmission {
   @@index([status])
   @@index([createdAt])
 }
+
+model SystemSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}

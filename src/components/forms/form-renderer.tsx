@@ -178,6 +178,16 @@ export function FormRenderer({
             );
           }
 
+          if (field.type === "html") {
+            return (
+              <div
+                key={field.id}
+                className={`${widthClass} prose prose-sm dark:prose-invert max-w-none`}
+                dangerouslySetInnerHTML={{ __html: field.htmlContent || "" }}
+              />
+            );
+          }
+
           const error = errors[field.id];
 
           return (

@@ -91,7 +91,7 @@ export function FormBuilder({ form }: FormBuilderProps) {
     const newField: FormField = {
       id: generateFieldId(),
       type,
-      label: type === "heading" ? "Section Title" : type === "divider" ? "" : `New ${type} field`,
+      label: type === "heading" ? "Section Title" : type === "divider" ? "" : type === "html" ? "HTML Block" : `New ${type} field`,
       order: fields.length,
       required: false,
       width: "full",
