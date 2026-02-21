@@ -19,6 +19,7 @@ jobs:
             git checkout -- package-lock.json
             git pull origin master
             npm install
+            npx prisma db push --skip-generate
             npm run build
             cp -r .next/static .next/standalone/.next/static
             cp -r public .next/standalone/public
