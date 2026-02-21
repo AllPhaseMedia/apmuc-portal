@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { BrandStyleInjection } from "@/components/branding/brand-style-injection";
+import { getBranding } from "@/lib/branding";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,11 +15,13 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "APM | UC Support",
-  description:
-    "Client portal for All Phase Media & UnionCoded — manage your website, support, and billing in one place.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getBranding();
+  return {
+    title: branding.name,
+    description: `Client portal for ${branding.fullName} — ${branding.description}`,
+  };
+}
 
 export default function RootLayout({
   children,
@@ -29,6 +33,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
+        <BrandStyleInjection />
         <Providers>{children}</Providers>
       </body>
     </html>

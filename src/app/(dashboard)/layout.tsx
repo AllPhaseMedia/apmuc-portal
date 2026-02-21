@@ -1,4 +1,5 @@
 import { getAuthUser, getRealAuthUser } from "@/lib/auth";
+import { getBranding } from "@/lib/branding";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
 import { ImpersonationBanner } from "@/components/layout/impersonation-banner";
@@ -9,9 +10,10 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [effectiveUser, realUser] = await Promise.all([
+  const [effectiveUser, realUser, branding] = await Promise.all([
     getAuthUser(),
     getRealAuthUser(),
+    getBranding(),
   ]);
 
   // Show admin nav if the REAL user is staff (admin or employee)
@@ -21,7 +23,14 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <AppSidebar isStaff={isStaff} isAdmin={isAdmin} />
+      <AppSidebar
+        isStaff={isStaff}
+        isAdmin={isAdmin}
+        brandName={branding.name}
+        brandTagline={branding.tagline}
+        logoLight={branding.logoLight}
+        logoDark={branding.logoDark}
+      />
       <SidebarInset>
         {isImpersonating && effectiveUser?.impersonating && (
           <ImpersonationBanner

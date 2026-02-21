@@ -16,9 +16,10 @@ interface PublicFormPageProps {
     settings: FormSettings;
   };
   prefill: FormPrefillData;
+  brandName?: string;
 }
 
-export function PublicFormPage({ form, prefill }: PublicFormPageProps) {
+export function PublicFormPage({ form, prefill, brandName = "APM | UC Support" }: PublicFormPageProps) {
   const [submitted, setSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -38,7 +39,7 @@ export function PublicFormPage({ form, prefill }: PublicFormPageProps) {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+      <div className="flex flex-1 items-center justify-center p-4">
         <div className="max-w-md w-full text-center space-y-4">
           <CheckCircle2 className="h-16 w-16 text-primary mx-auto" />
           <h2 className="text-2xl font-bold">{successMessage}</h2>
@@ -48,7 +49,7 @@ export function PublicFormPage({ form, prefill }: PublicFormPageProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+    <div className="flex flex-1 items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         <div className="rounded-lg border bg-background p-6 sm:p-8 shadow-sm">
           <div className="mb-6">
@@ -65,7 +66,7 @@ export function PublicFormPage({ form, prefill }: PublicFormPageProps) {
           />
         </div>
         <p className="text-center text-xs text-muted-foreground mt-4">
-          Powered by APM | UC Support
+          Powered by {brandName}
         </p>
       </div>
     </div>

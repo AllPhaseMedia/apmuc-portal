@@ -1,3 +1,4 @@
+/** @deprecated Use getBranding() from "@/lib/branding" for dynamic values. This constant serves as fallback defaults. */
 export const BRAND = {
   name: "APM | UC Support",
   fullName: "All Phase Media & UnionCoded",

@@ -214,6 +214,6 @@ model FormSubmission {
 
 model SystemSetting {
   key       String   @id
-  value     String   @db.Text
+  value     String   @db.MediumText
   updatedAt DateTime @updatedAt
 }

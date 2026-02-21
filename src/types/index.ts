@@ -26,3 +26,4 @@ export type CategoryWithCount = KBCategory & {
 };
 
 export * from "./forms";
+export * from "./branding";

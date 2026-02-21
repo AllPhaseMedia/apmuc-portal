@@ -1,0 +1,253 @@
+"use server";
+
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
+import type { ActionResult } from "@/types";
+import type {
+  BrandingSettings,
+  HomepageHero,
+  FeatureBlock,
+  FooterLink,
+} from "@/types/branding";
+
+async function upsertSetting(key: string, value: string) {
+  await prisma.systemSetting.upsert({
+    where: { key },
+    create: { key, value },
+    update: { value },
+  });
+}
+
+async function getSettingMap(keys: string[]): Promise<Record<string, string>> {
+  const rows = await prisma.systemSetting.findMany({
+    where: { key: { in: keys } },
+  });
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+
+// ─── Branding ────────────────────────────────────────────────
+
+export async function getBrandingSettings(): Promise<
+  ActionResult<Partial<BrandingSettings>>
+> {
+  try {
+    await requireAdmin();
+    const keys = [
+      "brandName",
+      "brandFullName",
+      "brandTagline",
+      "brandDescription",
+      "brandUrl",
+      "brandCompanyName",
+      "brandCompanyLocation",
+      "brandLogoLight",
+      "brandLogoDark",
+      "brandColorPrimary",
+      "brandColorSidebar",
+    ];
+    const map = await getSettingMap(keys);
+    return {
+      success: true,
+      data: {
+        name: map.brandName ?? "",
+        fullName: map.brandFullName ?? "",
+        tagline: map.brandTagline ?? "",
+        description: map.brandDescription ?? "",
+        url: map.brandUrl ?? "",
+        companyName: map.brandCompanyName ?? "",
+        companyLocation: map.brandCompanyLocation ?? "",
+        logoLight: map.brandLogoLight ?? "",
+        logoDark: map.brandLogoDark ?? "",
+        colorPrimary: map.brandColorPrimary ?? "",
+        colorSidebar: map.brandColorSidebar ?? "",
+      },
+    };
+  } catch (error) {
+    console.error("[branding] getBrandingSettings error:", error);
+    return { success: false, error: "Failed to load branding settings" };
+  }
+}
+
+export async function saveBrandingSettings(
+  settings: Partial<BrandingSettings>
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireAdmin();
+
+    const keyMap: Record<string, keyof BrandingSettings> = {
+      brandName: "name",
+      brandFullName: "fullName",
+      brandTagline: "tagline",
+      brandDescription: "description",
+      brandUrl: "url",
+      brandCompanyName: "companyName",
+      brandCompanyLocation: "companyLocation",
+      brandLogoLight: "logoLight",
+      brandLogoDark: "logoDark",
+      brandColorPrimary: "colorPrimary",
+      brandColorSidebar: "colorSidebar",
+    };
+
+    for (const [dbKey, settingKey] of Object.entries(keyMap)) {
+      const value = settings[settingKey];
+      if (value !== undefined) {
+        await upsertSetting(dbKey, value);
+      }
+    }
+
+    return { success: true, data: { message: "Branding settings saved" } };
+  } catch (error) {
+    console.error("[branding] saveBrandingSettings error:", error);
+    return { success: false, error: "Failed to save branding settings" };
+  }
+}
+
+// ─── Homepage ────────────────────────────────────────────────
+
+export async function getHomepageSettings(): Promise<
+  ActionResult<{
+    hero: HomepageHero | null;
+    blocks: FeatureBlock[] | null;
+    contentAbove: string;
+    contentBelow: string;
+  }>
+> {
+  try {
+    await requireAdmin();
+    const keys = [
+      "homepageHero",
+      "homepageBlocks",
+      "homepageContentAbove",
+      "homepageContentBelow",
+    ];
+    const map = await getSettingMap(keys);
+
+    let hero: HomepageHero | null = null;
+    if (map.homepageHero) {
+      try {
+        hero = JSON.parse(map.homepageHero);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    let blocks: FeatureBlock[] | null = null;
+    if (map.homepageBlocks) {
+      try {
+        blocks = JSON.parse(map.homepageBlocks);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        hero,
+        blocks,
+        contentAbove: map.homepageContentAbove ?? "",
+        contentBelow: map.homepageContentBelow ?? "",
+      },
+    };
+  } catch (error) {
+    console.error("[branding] getHomepageSettings error:", error);
+    return { success: false, error: "Failed to load homepage settings" };
+  }
+}
+
+export async function saveHomepageHero(
+  hero: HomepageHero
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireAdmin();
+    await upsertSetting("homepageHero", JSON.stringify(hero));
+    return { success: true, data: { message: "Hero section saved" } };
+  } catch (error) {
+    console.error("[branding] saveHomepageHero error:", error);
+    return { success: false, error: "Failed to save hero section" };
+  }
+}
+
+export async function saveHomepageBlocks(
+  blocks: FeatureBlock[]
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireAdmin();
+    await upsertSetting("homepageBlocks", JSON.stringify(blocks));
+    return { success: true, data: { message: "Feature blocks saved" } };
+  } catch (error) {
+    console.error("[branding] saveHomepageBlocks error:", error);
+    return { success: false, error: "Failed to save feature blocks" };
+  }
+}
+
+export async function saveHomepageContent(
+  key: "homepageContentAbove" | "homepageContentBelow",
+  html: string
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireAdmin();
+    await upsertSetting(key, html);
+    return { success: true, data: { message: "Content saved" } };
+  } catch (error) {
+    console.error("[branding] saveHomepageContent error:", error);
+    return { success: false, error: "Failed to save content" };
+  }
+}
+
+// ─── Footer ──────────────────────────────────────────────────
+
+export async function getFooterSettings(): Promise<
+  ActionResult<{ content: string; links: FooterLink[] }>
+> {
+  try {
+    await requireAdmin();
+    const map = await getSettingMap(["footerContent", "footerLinks"]);
+
+    let links: FooterLink[] = [];
+    if (map.footerLinks) {
+      try {
+        links = JSON.parse(map.footerLinks);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        content: map.footerContent ?? "",
+        links,
+      },
+    };
+  } catch (error) {
+    console.error("[branding] getFooterSettings error:", error);
+    return { success: false, error: "Failed to load footer settings" };
+  }
+}
+
+export async function saveFooterContent(
+  html: string
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireAdmin();
+    await upsertSetting("footerContent", html);
+    return { success: true, data: { message: "Footer content saved" } };
+  } catch (error) {
+    console.error("[branding] saveFooterContent error:", error);
+    return { success: false, error: "Failed to save footer content" };
+  }
+}
+
+export async function saveFooterLinks(
+  links: FooterLink[]
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireAdmin();
+    await upsertSetting("footerLinks", JSON.stringify(links));
+    return { success: true, data: { message: "Footer links saved" } };
+  } catch (error) {
+    console.error("[branding] saveFooterLinks error:", error);
+    return { success: false, error: "Failed to save footer links" };
+  }
+}

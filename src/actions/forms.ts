@@ -7,7 +7,7 @@ import { createConversation } from "@/lib/helpscout";
 import type { ActionResult } from "@/types";
 import type { Attachment } from "@/lib/helpscout";
 import type { FormField, FormSettings } from "@/types/forms";
-import { BRAND } from "@/lib/constants";
+import { getBranding } from "@/lib/branding";
 
 export async function submitForm(
   formId: string,
@@ -118,7 +118,8 @@ export async function submitForm(
 
     // Send email notification
     if (settings.emailNotification && settings.emailTo && await isEmailConfigured()) {
-      const adminUrl = `${BRAND.url}/admin/forms/${formId}/submissions`;
+      const branding = await getBranding();
+      const adminUrl = `${branding.url}/admin/forms/${formId}/submissions`;
       const html = buildSubmissionEmail({
         formName: form.name,
         fields: labeledFields,

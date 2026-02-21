@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 
-import { BRAND } from "@/lib/constants";
+import { BrandLogo } from "@/components/branding/brand-logo";
 import {
   Sidebar,
   SidebarContent,
@@ -70,24 +70,38 @@ const adminOnlyNav = [
 type Props = {
   isStaff: boolean;
   isAdmin: boolean;
+  brandName?: string;
+  brandTagline?: string;
+  logoLight?: string;
+  logoDark?: string;
 };
 
-export function AppSidebar({ isStaff, isAdmin }: Props) {
+export function AppSidebar({
+  isStaff,
+  isAdmin,
+  brandName = "APM | UC Support",
+  brandTagline = "Client Support Portal",
+  logoLight = "",
+  logoDark = "",
+}: Props) {
   const pathname = usePathname();
 
   return (
     <Sidebar>
       <SidebarHeader className="px-4 py-5">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground font-bold text-sm">
-            A
-          </div>
+          <BrandLogo
+            logoLight={logoLight}
+            logoDark={logoDark}
+            brandName={brandName}
+            size={32}
+          />
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-sidebar-foreground">
-              {BRAND.name}
+              {brandName}
             </span>
             <span className="text-xs text-sidebar-foreground/60">
-              {BRAND.tagline}
+              {brandTagline}
             </span>
           </div>
         </Link>

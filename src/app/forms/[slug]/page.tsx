@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getAuthUser } from "@/lib/auth";
+import { getBranding } from "@/lib/branding";
 import type { FormField, FormSettings, FormPrefillData } from "@/types/forms";
 import { PublicFormPage } from "@/components/forms/public-form-page";
-import { BRAND } from "@/lib/constants";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -12,9 +12,12 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const form = await prisma.form.findUnique({ where: { slug } });
+  const [form, branding] = await Promise.all([
+    prisma.form.findUnique({ where: { slug } }),
+    getBranding(),
+  ]);
   return {
-    title: form ? `${form.name} — ${BRAND.name}` : "Form Not Found",
+    title: form ? `${form.name} — ${branding.name}` : "Form Not Found",
     description: form?.description || undefined,
   };
 }
@@ -22,7 +25,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function PublicForm({ params }: PageProps) {
   const { slug } = await params;
 
-  const form = await prisma.form.findUnique({ where: { slug } });
+  const [form, branding] = await Promise.all([
+    prisma.form.findUnique({ where: { slug } }),
+    getBranding(),
+  ]);
   if (!form || !form.isActive || !form.isPublic) {
     notFound();
   }
@@ -59,6 +65,7 @@ export default async function PublicForm({ params }: PageProps) {
         settings,
       }}
       prefill={prefill}
+      brandName={branding.name}
     />
   );
 }
