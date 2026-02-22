@@ -58,15 +58,17 @@ export async function fetchUmamiStats(
 
     const data = await res.json();
 
+    // Umami v2 returns flat numbers; v1 used { value: N } objects
+    const visitors = data.visitors?.value ?? data.visitors ?? data.uniques?.value ?? 0;
+    const pageviews = data.pageviews?.value ?? data.pageviews ?? 0;
+    const bounces = data.bounces?.value ?? data.bounces ?? 0;
+    const totalTime = data.totaltime?.value ?? data.totaltime ?? 0;
+
     return {
-      visitors: data.visitors?.value ?? data.uniques?.value ?? 0,
-      pageviews: data.pageviews?.value ?? 0,
-      bounceRate: data.bounces?.value
-        ? Math.round(
-            (data.bounces.value / (data.visitors?.value || 1)) * 100
-          )
-        : 0,
-      totalTime: data.totaltime?.value ?? 0,
+      visitors,
+      pageviews,
+      bounceRate: visitors > 0 ? Math.round((bounces / visitors) * 100) : 0,
+      totalTime,
     };
   } catch (error) {
     console.error("Umami fetch failed:", error);
@@ -133,7 +135,7 @@ export type UmamiMetric = {
 
 export async function fetchUmamiMetrics(
   siteId: string,
-  type: "url" | "referrer",
+  type: "path" | "referrer",
   period: "7d" | "30d" | "90d" = "30d",
   limit = 10
 ): Promise<UmamiMetric[]> {

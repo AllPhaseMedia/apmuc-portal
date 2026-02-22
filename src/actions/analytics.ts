@@ -46,7 +46,7 @@ export async function getAnalyticsData(
     const [stats, pageviews, topPages, topReferrers] = await Promise.all([
       fetchUmamiStats(client.umamiSiteId, period),
       fetchUmamiPageviews(client.umamiSiteId, period),
-      fetchUmamiMetrics(client.umamiSiteId, "url", period),
+      fetchUmamiMetrics(client.umamiSiteId, "path", period),
       fetchUmamiMetrics(client.umamiSiteId, "referrer", period),
     ]);
 
