@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchPageSpeedScores } from "@/lib/pagespeed";
 import { checkSSL } from "@/lib/ssl-check";
+import { lookupDomain } from "@/lib/whois";
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -28,10 +29,11 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      // Run PageSpeed and SSL checks in parallel
-      const [pagespeed, ssl] = await Promise.all([
+      // Run PageSpeed, SSL, and WHOIS checks in parallel
+      const [pagespeed, ssl, domain] = await Promise.all([
         fetchPageSpeedScores(client.websiteUrl),
         checkSSL(hostname),
+        lookupDomain(hostname),
       ]);
 
       await prisma.siteCheck.create({
@@ -45,6 +47,8 @@ export async function GET(req: NextRequest) {
           sslValid: ssl.valid,
           sslIssuer: ssl.issuer,
           sslExpiresAt: ssl.expiresAt,
+          domainRegistrar: domain.registrar,
+          domainExpiresAt: domain.expiresAt,
         },
       });
 
