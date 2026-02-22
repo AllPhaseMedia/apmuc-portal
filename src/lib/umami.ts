@@ -12,7 +12,7 @@ export type UmamiStats = {
 
 export async function fetchUmamiStats(
   siteId: string,
-  period: "24h" | "7d" | "30d" = "30d"
+  period: "24h" | "7d" | "30d" | "90d" = "30d"
 ): Promise<UmamiStats | null> {
   if (!BASE_URL || !API_TOKEN) return null;
 
@@ -29,6 +29,9 @@ export async function fetchUmamiStats(
         break;
       case "30d":
         startAt = now - 30 * 24 * 60 * 60 * 1000;
+        break;
+      case "90d":
+        startAt = now - 90 * 24 * 60 * 60 * 1000;
         break;
     }
 
