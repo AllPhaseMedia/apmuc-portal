@@ -9,7 +9,7 @@ type Props = {
 };
 
 export function PageviewChart({ data }: Props) {
-  if (data.length === 0) {
+  if (data.length < 2) {
     return (
       <Card>
         <CardHeader>
