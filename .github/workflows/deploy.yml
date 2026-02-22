@@ -23,4 +23,5 @@ jobs:
             npm run build
             cp -r .next/static .next/standalone/.next/static
             cp -r public .next/standalone/public
+            node scripts/inject-env-loader.js
             sudo /usr/local/bin/pm2-restart-portal

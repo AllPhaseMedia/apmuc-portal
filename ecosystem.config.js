@@ -3,7 +3,6 @@ module.exports = {
     {
       name: "apmuc-portal",
       script: ".next/standalone/server.js",
-      node_args: "--env-file=.env",
       env: {
         NODE_ENV: "production",
         PORT: 3000,
