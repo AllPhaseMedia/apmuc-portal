@@ -1,0 +1,37 @@
+name: Fix PM2 restart script
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update restart script and reload PM2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            # Write the improved restart script to a temp file
+            cat > /tmp/pm2-restart-portal.new << 'SCRIPT'
+            #!/bin/bash
+            cd /var/www/new.clientsupport.app
+            set -a
+            source .env
+            set +a
+            PM2_HOME=/root/.pm2 /usr/bin/pm2 restart apmuc-portal --update-env
+            SCRIPT
+            chmod +x /tmp/pm2-restart-portal.new
+
+            # Copy it into place using password-based sudo
+            echo '${{ secrets.VPS_PASSWORD }}' | sudo -S cp /tmp/pm2-restart-portal.new /usr/local/bin/pm2-restart-portal
+            rm /tmp/pm2-restart-portal.new
+
+            # Now run the updated script (NOPASSWD allowed)
+            sudo /usr/local/bin/pm2-restart-portal
+
+            # Verify
+            sleep 3
+            curl -sf http://localhost:3000/api/health && echo "Health OK" || echo "Health FAILED"
