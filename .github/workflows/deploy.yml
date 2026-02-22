@@ -23,4 +23,4 @@ jobs:
             npm run build
             cp -r .next/static .next/standalone/.next/static
             cp -r public .next/standalone/public
-            sudo /usr/local/bin/pm2-restart-portal
+            sudo PM2_HOME=/root/.pm2 pm2 reload /var/www/new.clientsupport.app/ecosystem.config.js --update-env
