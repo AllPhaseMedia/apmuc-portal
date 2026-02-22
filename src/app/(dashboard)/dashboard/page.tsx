@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { UptimeCard } from "@/components/dashboard/uptime-card";
 import { AnalyticsCard } from "@/components/dashboard/analytics-card";
 import { SSLCard } from "@/components/dashboard/ssl-card";
+import { DomainCard } from "@/components/dashboard/domain-card";
+import { RecentSupportCard } from "@/components/dashboard/recent-support-card";
 import { UpsellSection } from "@/components/dashboard/upsell-section";
 import { Separator } from "@/components/ui/separator";
 
@@ -12,7 +14,6 @@ export default async function DashboardPage() {
   const [user, branding] = await Promise.all([requireAuth(), getBranding()]);
   const result = await getDashboardData();
 
-  // Admin without a client record sees admin notice
   if (!result.success) {
     return (
       <div className="space-y-6">
@@ -44,13 +45,16 @@ export default async function DashboardPage() {
     );
   }
 
-  const { client, siteCheck, uptime, analytics, upsellServices, permissions } =
-    result.data;
-
-  const showSiteHealth = permissions.siteHealth;
-  const showUptime = permissions.uptime;
-  const showAnalytics = permissions.analytics;
-  const showAnyCard = showSiteHealth || showUptime || showAnalytics;
+  const {
+    client,
+    siteCheck,
+    uptime,
+    analytics,
+    sparkline,
+    recentTickets,
+    upsellServices,
+    permissions,
+  } = result.data;
 
   return (
     <div className="space-y-6">
@@ -61,26 +65,39 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">{branding.description}</p>
       </div>
 
-      {showAnyCard && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {showSiteHealth && (
-            <SSLCard siteCheck={siteCheck} websiteUrl={client.websiteUrl} />
-          )}
-          {showUptime && (
+      {/* Analytics Hero — full width */}
+      {permissions.analytics && (
+        <AnalyticsCard
+          analytics={analytics}
+          sparkline={sparkline}
+          configured={!!client.umamiSiteId}
+        />
+      )}
+
+      {/* 3-column grid: Uptime, SSL, Domain */}
+      {(permissions.uptime || permissions.siteHealth) && (
+        <div className="grid gap-4 md:grid-cols-3">
+          {permissions.uptime && (
             <UptimeCard
               uptime={uptime}
               configured={!!client.uptimeKumaMonitorId}
             />
           )}
-          {showAnalytics && (
-            <AnalyticsCard
-              analytics={analytics}
-              configured={!!client.umamiSiteId}
-            />
+          {permissions.siteHealth && (
+            <SSLCard siteCheck={siteCheck} websiteUrl={client.websiteUrl} />
+          )}
+          {permissions.siteHealth && (
+            <DomainCard siteCheck={siteCheck} websiteUrl={client.websiteUrl} />
           )}
         </div>
       )}
 
+      {/* Recent Support Requests */}
+      {permissions.support && (
+        <RecentSupportCard tickets={recentTickets} />
+      )}
+
+      {/* Upsell */}
       {upsellServices.length > 0 && (
         <>
           <Separator />
