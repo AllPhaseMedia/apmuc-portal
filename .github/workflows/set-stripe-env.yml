@@ -1,0 +1,21 @@
+name: Set Stripe env vars
+
+on:
+  workflow_dispatch:
+
+jobs:
+  set-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Stripe keys
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            cd /var/www/new.clientsupport.app
+            sed -i 's|STRIPE_SECRET_KEY="sk_test_..."|STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY }}"|' .env
+            sed -i 's|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="${{ secrets.STRIPE_PUBLISHABLE_KEY }}"|' .env
+            echo "Stripe keys set:"
+            grep STRIPE .env | sed 's/=.*/=***/'
