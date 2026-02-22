@@ -46,8 +46,8 @@ model Client {
   websiteUrl          String?
   stripeCustomerId    String?         @unique
   umamiSiteId         String?
+  umamiShareId        String?
   uptimeKumaMonitorId String?
-  gaPropertyId        String?
   searchConsoleUrl    String?
   isActive            Boolean         @default(true)
   notes               String?         @db.Text
@@ -117,6 +117,8 @@ model SiteCheck {
   sslValid           Boolean?
   sslIssuer          String?
   sslExpiresAt       DateTime?
+  domainRegistrar    String?
+  domainExpiresAt    DateTime?
   checkedAt          DateTime  @default(now())
 
   client             Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)

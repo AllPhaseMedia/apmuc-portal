@@ -38,8 +38,8 @@ export function ClientForm({ client }: Props) {
       websiteUrl: formData.get("websiteUrl") as string,
       stripeCustomerId: formData.get("stripeCustomerId") as string,
       umamiSiteId: formData.get("umamiSiteId") as string,
+      umamiShareId: formData.get("umamiShareId") as string,
       uptimeKumaMonitorId: formData.get("uptimeKumaMonitorId") as string,
-      gaPropertyId: formData.get("gaPropertyId") as string,
       searchConsoleUrl: formData.get("searchConsoleUrl") as string,
       notes: formData.get("notes") as string,
       isActive: formData.get("isActive") === "on",
@@ -108,12 +108,12 @@ export function ClientForm({ client }: Props) {
             <Input id="umamiSiteId" name="umamiSiteId" defaultValue={client?.umamiSiteId ?? ""} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="uptimeKumaMonitorId">Uptime Kuma Monitor ID</Label>
-            <Input id="uptimeKumaMonitorId" name="uptimeKumaMonitorId" defaultValue={client?.uptimeKumaMonitorId ?? ""} />
+            <Label htmlFor="umamiShareId">Umami Share ID</Label>
+            <Input id="umamiShareId" name="umamiShareId" placeholder="abc123..." defaultValue={client?.umamiShareId ?? ""} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="gaPropertyId">Google Analytics Property ID</Label>
-            <Input id="gaPropertyId" name="gaPropertyId" defaultValue={client?.gaPropertyId ?? ""} />
+            <Label htmlFor="uptimeKumaMonitorId">Uptime Kuma Monitor ID</Label>
+            <Input id="uptimeKumaMonitorId" name="uptimeKumaMonitorId" defaultValue={client?.uptimeKumaMonitorId ?? ""} />
           </div>
           <div className="space-y-2 col-span-full">
             <Label htmlFor="searchConsoleUrl">Search Console URL</Label>
