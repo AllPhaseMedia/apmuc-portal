@@ -70,3 +70,104 @@ export async function fetchUmamiStats(
     return null;
   }
 }
+
+export type UmamiPageviewsEntry = {
+  date: string;
+  visitors: number;
+  pageviews: number;
+};
+
+export async function fetchUmamiPageviews(
+  siteId: string,
+  period: "7d" | "30d" | "90d" = "30d"
+): Promise<UmamiPageviewsEntry[]> {
+  if (!BASE_URL || !API_TOKEN) return [];
+
+  try {
+    const now = Date.now();
+    const ms = { "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
+    const startAt = now - ms;
+
+    const params = new URLSearchParams({
+      startAt: startAt.toString(),
+      endAt: now.toString(),
+      unit: "day",
+      timezone: "America/New_York",
+    });
+
+    const res = await fetch(
+      `${BASE_URL}/api/websites/${siteId}/pageviews?${params}`,
+      {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          Accept: "application/json",
+        },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const pageviews = data.pageviews ?? [];
+    const sessions = data.sessions ?? [];
+
+    return pageviews.map((p: { x: string; y: number }, i: number) => ({
+      date: p.x,
+      pageviews: p.y,
+      visitors: sessions[i]?.y ?? 0,
+    }));
+  } catch (error) {
+    console.error("Umami pageviews fetch failed:", error);
+    return [];
+  }
+}
+
+export type UmamiMetric = {
+  name: string;
+  value: number;
+};
+
+export async function fetchUmamiMetrics(
+  siteId: string,
+  type: "url" | "referrer",
+  period: "7d" | "30d" | "90d" = "30d",
+  limit = 10
+): Promise<UmamiMetric[]> {
+  if (!BASE_URL || !API_TOKEN) return [];
+
+  try {
+    const now = Date.now();
+    const ms = { "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
+    const startAt = now - ms;
+
+    const params = new URLSearchParams({
+      startAt: startAt.toString(),
+      endAt: now.toString(),
+      type,
+      limit: limit.toString(),
+    });
+
+    const res = await fetch(
+      `${BASE_URL}/api/websites/${siteId}/metrics?${params}`,
+      {
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          Accept: "application/json",
+        },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    return (data ?? []).map((d: { x: string; y: number }) => ({
+      name: d.x,
+      value: d.y,
+    }));
+  } catch (error) {
+    console.error(`Umami ${type} metrics fetch failed:`, error);
+    return [];
+  }
+}
