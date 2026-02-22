@@ -13,7 +13,7 @@ interface PageProps {
   searchParams: Promise<{ period?: string }>;
 }
 
-const PERIODS = ["7d", "30d", "90d"] as const;
+const PERIODS = ["24h", "7d", "30d", "90d"] as const;
 type Period = (typeof PERIODS)[number];
 
 function isPeriod(v: string | undefined): v is Period {
@@ -69,7 +69,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps) {
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            {p === "7d" ? "7 Days" : p === "30d" ? "30 Days" : "90 Days"}
+            {p === "24h" ? "24 Hours" : p === "7d" ? "7 Days" : p === "30d" ? "30 Days" : "90 Days"}
           </Link>
         ))}
       </div>

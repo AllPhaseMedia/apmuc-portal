@@ -1,6 +1,6 @@
 import type { UmamiStats, UmamiPageviewsEntry } from "@/lib/umami";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, ArrowUp, ArrowDown } from "lucide-react";
 import Link from "next/link";
 
 type Props = {
@@ -8,6 +8,27 @@ type Props = {
   sparkline: UmamiPageviewsEntry[];
   configured: boolean;
 };
+
+function ChangeIndicator({ value, invert }: { value: number | null; invert?: boolean }) {
+  if (value === null) return null;
+  const isPositive = invert ? value < 0 : value > 0;
+  const isNegative = invert ? value > 0 : value < 0;
+  const Icon = value >= 0 ? ArrowUp : ArrowDown;
+  const absVal = Math.abs(value);
+
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+        isPositive ? "text-emerald-600 dark:text-emerald-400" :
+        isNegative ? "text-red-600 dark:text-red-400" :
+        "text-muted-foreground"
+      }`}
+    >
+      <Icon className="h-3 w-3" />
+      {absVal}%
+    </span>
+  );
+}
 
 function Sparkline({ data }: { data: UmamiPageviewsEntry[] }) {
   if (data.length < 2) return null;
@@ -30,6 +51,13 @@ function Sparkline({ data }: { data: UmamiPageviewsEntry[] }) {
       <path d={linePath} className="fill-none stroke-primary stroke-[1.5]" />
     </svg>
   );
+}
+
+function formatTime(totalSeconds: number, visitors: number): string {
+  const avg = visitors > 0 ? Math.round(totalSeconds / visitors) : 0;
+  const m = Math.floor(avg / 60);
+  const s = avg % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
 export function AnalyticsCard({ analytics, sparkline, configured }: Props) {
@@ -61,9 +89,12 @@ export function AnalyticsCard({ analytics, sparkline, configured }: Props) {
     );
   }
 
-  const avgTime = analytics.visitors > 0 ? Math.round(analytics.totalTime / analytics.visitors) : 0;
-  const minutes = Math.floor(avgTime / 60);
-  const seconds = avgTime % 60;
+  const items = [
+    { label: "Visitors", value: analytics.visitors.toLocaleString(), change: analytics.change.visitors },
+    { label: "Views", value: analytics.pageviews.toLocaleString(), change: analytics.change.pageviews },
+    { label: "Bounce Rate", value: `${analytics.bounceRate}%`, change: analytics.change.bounceRate, invert: true },
+    { label: "Avg. Visit", value: formatTime(analytics.totalTime, analytics.visitors), change: analytics.change.totalTime },
+  ];
 
   return (
     <Link href="/analytics" className="block">
@@ -74,24 +105,13 @@ export function AnalyticsCard({ analytics, sparkline, configured }: Props) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-4">
-            <div>
-              <p className="text-2xl font-bold">{analytics.visitors.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Visitors</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{analytics.pageviews.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Pageviews</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{analytics.bounceRate}%</p>
-              <p className="text-xs text-muted-foreground">Bounce Rate</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">
-                {minutes > 0 ? `${minutes}m ` : ""}{seconds}s
-              </p>
-              <p className="text-xs text-muted-foreground">Avg. Visit</p>
-            </div>
+            {items.map(({ label, value, change, invert }) => (
+              <div key={label}>
+                <p className="text-2xl font-bold">{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <ChangeIndicator value={change} invert={invert} />
+              </div>
+            ))}
           </div>
           <Sparkline data={sparkline} />
           <p className="text-xs text-muted-foreground mt-2 text-right">View Analytics →</p>

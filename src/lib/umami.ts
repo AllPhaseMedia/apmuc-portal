@@ -5,9 +5,17 @@ const API_TOKEN = process.env.UMAMI_API_TOKEN;
 
 export type UmamiStats = {
   visitors: number;
+  visits: number;
   pageviews: number;
   bounceRate: number;
   totalTime: number;
+  change: {
+    visitors: number | null;
+    visits: number | null;
+    pageviews: number | null;
+    bounceRate: number | null;
+    totalTime: number | null;
+  };
 };
 
 export async function fetchUmamiStats(
@@ -60,15 +68,40 @@ export async function fetchUmamiStats(
 
     // Umami v2 returns flat numbers; v1 used { value: N } objects
     const visitors = data.visitors?.value ?? data.visitors ?? data.uniques?.value ?? 0;
+    const visits = data.visits?.value ?? data.visits ?? 0;
     const pageviews = data.pageviews?.value ?? data.pageviews ?? 0;
     const bounces = data.bounces?.value ?? data.bounces ?? 0;
     const totalTime = data.totaltime?.value ?? data.totaltime ?? 0;
 
+    // Comparison data from previous equivalent period
+    const comp = data.comparison ?? {};
+    const prevVisitors = comp.visitors ?? 0;
+    const prevVisits = comp.visits ?? 0;
+    const prevPageviews = comp.pageviews ?? 0;
+    const prevBounces = comp.bounces ?? 0;
+    const prevTotalTime = comp.totaltime ?? 0;
+
+    const pct = (curr: number, prev: number): number | null => {
+      if (prev === 0) return curr > 0 ? 100 : null;
+      return Math.round(((curr - prev) / prev) * 100);
+    };
+
+    const bounceRate = visitors > 0 ? Math.round((bounces / visitors) * 100) : 0;
+    const prevBounceRate = prevVisitors > 0 ? Math.round((prevBounces / prevVisitors) * 100) : 0;
+
     return {
       visitors,
+      visits,
       pageviews,
-      bounceRate: visitors > 0 ? Math.round((bounces / visitors) * 100) : 0,
+      bounceRate,
       totalTime,
+      change: {
+        visitors: pct(visitors, prevVisitors),
+        visits: pct(visits, prevVisits),
+        pageviews: pct(pageviews, prevPageviews),
+        bounceRate: prevVisitors > 0 ? pct(bounceRate, prevBounceRate) : null,
+        totalTime: pct(totalTime, prevTotalTime),
+      },
     };
   } catch (error) {
     console.error("Umami fetch failed:", error);
@@ -84,19 +117,20 @@ export type UmamiPageviewsEntry = {
 
 export async function fetchUmamiPageviews(
   siteId: string,
-  period: "7d" | "30d" | "90d" = "30d"
+  period: "24h" | "7d" | "30d" | "90d" = "30d"
 ): Promise<UmamiPageviewsEntry[]> {
   if (!BASE_URL || !API_TOKEN) return [];
 
   try {
     const now = Date.now();
-    const ms = { "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
+    const ms = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
     const startAt = now - ms;
+    const unit = period === "24h" ? "hour" : "day";
 
     const params = new URLSearchParams({
       startAt: startAt.toString(),
       endAt: now.toString(),
-      unit: "day",
+      unit,
       timezone: "America/New_York",
     });
 
@@ -136,14 +170,14 @@ export type UmamiMetric = {
 export async function fetchUmamiMetrics(
   siteId: string,
   type: "path" | "referrer",
-  period: "7d" | "30d" | "90d" = "30d",
+  period: "24h" | "7d" | "30d" | "90d" = "30d",
   limit = 10
 ): Promise<UmamiMetric[]> {
   if (!BASE_URL || !API_TOKEN) return [];
 
   try {
     const now = Date.now();
-    const ms = { "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
+    const ms = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
     const startAt = now - ms;
 
     const params = new URLSearchParams({

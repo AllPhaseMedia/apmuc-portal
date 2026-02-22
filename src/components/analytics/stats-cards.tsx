@@ -1,6 +1,6 @@
 import type { UmamiStats } from "@/lib/umami";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Eye, ArrowDownUp, Clock } from "lucide-react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
 type Props = {
   stats: UmamiStats;
@@ -13,39 +13,50 @@ function formatTime(totalSeconds: number, visitors: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-const items = [
-  { key: "visitors", label: "Visitors", icon: Users, format: (v: number) => v.toLocaleString() },
-  { key: "pageviews", label: "Pageviews", icon: Eye, format: (v: number) => v.toLocaleString() },
-  { key: "bounceRate", label: "Bounce Rate", icon: ArrowDownUp, format: (v: number) => `${v}%` },
-] as const;
+function ChangeIndicator({ value, invert }: { value: number | null; invert?: boolean }) {
+  if (value === null) return null;
+  // For bounce rate, down is good (invert colors)
+  const isPositive = invert ? value < 0 : value > 0;
+  const isNegative = invert ? value > 0 : value < 0;
+  const Icon = value >= 0 ? ArrowUp : ArrowDown;
+  const absVal = Math.abs(value);
+
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+        isPositive ? "text-emerald-600 dark:text-emerald-400" :
+        isNegative ? "text-red-600 dark:text-red-400" :
+        "text-muted-foreground"
+      }`}
+    >
+      <Icon className="h-3 w-3" />
+      {absVal}%
+    </span>
+  );
+}
 
 export function StatsCards({ stats }: Props) {
+  const items = [
+    { label: "Visitors", value: stats.visitors.toLocaleString(), change: stats.change.visitors },
+    { label: "Visits", value: stats.visits.toLocaleString(), change: stats.change.visits },
+    { label: "Views", value: stats.pageviews.toLocaleString(), change: stats.change.pageviews },
+    { label: "Bounce Rate", value: `${stats.bounceRate}%`, change: stats.change.bounceRate, invert: true },
+    { label: "Visit Duration", value: formatTime(stats.totalTime, stats.visitors), change: stats.change.totalTime },
+  ];
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map(({ key, label, icon: Icon, format }) => (
-        <Card key={key}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold">{format(stats[key])}</p>
-                <p className="text-sm text-muted-foreground">{label}</p>
-              </div>
-              <Icon className="h-5 w-5 text-muted-foreground" />
+    <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+      {items.map(({ label, value, change, invert }) => (
+        <Card key={label}>
+          <CardContent className="pt-6 pb-4">
+            <p className="text-xs text-muted-foreground mb-1">{label}</p>
+            <p className="text-2xl font-bold">{value}</p>
+            <div className="mt-1">
+              <ChangeIndicator value={change} invert={invert} />
             </div>
           </CardContent>
         </Card>
       ))}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold">{formatTime(stats.totalTime, stats.visitors)}</p>
-              <p className="text-sm text-muted-foreground">Avg. Visit</p>
-            </div>
-            <Clock className="h-5 w-5 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

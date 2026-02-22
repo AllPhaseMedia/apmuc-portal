@@ -21,7 +21,7 @@ export type AnalyticsData = {
 };
 
 export async function getAnalyticsData(
-  period: "7d" | "30d" | "90d" = "30d"
+  period: "24h" | "7d" | "30d" | "90d" = "30d"
 ): Promise<
   | { success: true; data: AnalyticsData }
   | { success: false; error: string }
