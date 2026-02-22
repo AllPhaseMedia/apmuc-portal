@@ -57,6 +57,7 @@ type NavItem = {
 
 const clientNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard", permission: "dashboard" },
+  { label: "Analytics", href: "/analytics", icon: "BarChart3", permission: "analytics" },
   { label: "Support", href: "/support", icon: "MessageSquare", permission: "support" },
   { label: "Billing", href: "/billing", icon: "CreditCard", permission: "billing" },
   { label: "Knowledge Base", href: "/knowledge-base", icon: "BookOpen" },
