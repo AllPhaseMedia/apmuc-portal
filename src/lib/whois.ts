@@ -5,10 +5,16 @@ type WhoisResult = {
   expiresAt: Date | null;
 };
 
+function getRegistrableDomain(hostname: string): string {
+  const parts = hostname.split(".");
+  return parts.length > 2 ? parts.slice(-2).join(".") : hostname;
+}
+
 export async function lookupDomain(hostname: string): Promise<WhoisResult> {
   try {
+    const domain = getRegistrableDomain(hostname);
     const whois = await import("whois-json");
-    const result = await whois.default(hostname);
+    const result = await whois.default(domain);
 
     const data = Array.isArray(result) ? result[0] : result;
 
