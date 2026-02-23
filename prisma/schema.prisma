@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -50,7 +50,7 @@ model Client {
   uptimeKumaMonitorId String?
   searchConsoleUrl    String?
   isActive            Boolean         @default(true)
-  notes               String?         @db.Text
+  notes               String?
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
@@ -148,8 +148,8 @@ model KBArticle {
   categoryId  String
   title       String
   slug        String          @unique
-  content     String          @db.LongText
-  excerpt     String?         @db.Text
+  content     String
+  excerpt     String?
   status      ArticleStatus   @default(DRAFT)
   sortOrder   Int             @default(0)
   createdAt   DateTime        @default(now())
@@ -168,7 +168,7 @@ model ArticleFeedback {
   id        String    @id @default(uuid())
   articleId String
   helpful   Boolean
-  comment   String?   @db.Text
+  comment   String?
   clientId  String?
   createdAt DateTime  @default(now())
 
@@ -185,7 +185,7 @@ model RecommendedService {
   id          String      @id @default(uuid())
   type        ServiceType
   title       String
-  description String      @db.Text
+  description String
   features    Json        @default("[]")
   ctaUrl      String?
   ctaLabel    String      @default("Learn More")
@@ -206,7 +206,7 @@ model Form {
   id          String   @id @default(uuid())
   name        String
   slug        String   @unique
-  description String?  @db.Text
+  description String?
   fields      Json     @default("[]")
   settings    Json     @default("{}")
   isActive    Boolean  @default(true)
@@ -238,6 +238,6 @@ model FormSubmission {
 
 model SystemSetting {
   key       String   @id
-  value     String   @db.MediumText
+  value     String
   updatedAt DateTime @updatedAt
 }
