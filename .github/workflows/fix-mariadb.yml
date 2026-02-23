@@ -9,10 +9,13 @@ jobs:
     steps:
       - name: Switch kuma-proxy to port 3000
         uses: appleboy/ssh-action@v1
+        env:
+          KUMA_API_KEY: ${{ secrets.KUMA_PROXY_API_KEY }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
+          envs: KUMA_API_KEY
           script: |
             set -e
             PROXY_DIR="$HOME/kuma-proxy"
@@ -20,23 +23,24 @@ jobs:
             # Stop old apmuc-portal on port 3000
             pm2 delete apmuc-portal 2>/dev/null || true
 
-            # Update ecosystem to use port 3000
-            cat > "$PROXY_DIR/ecosystem.config.js" << 'PM2EOF'
-            module.exports = {
+            # Write ecosystem config with expanded HOME
+            printf 'module.exports = {
               apps: [{
                 name: "kuma-proxy",
                 script: "server.js",
-                cwd: "$HOME/kuma-proxy",
+                cwd: "%s",
                 env: {
                   KUMA_PROXY_PORT: "3000",
-                  KUMA_PROXY_API_KEY: "${{ secrets.KUMA_PROXY_API_KEY }}",
+                  KUMA_PROXY_API_KEY: "%s",
                   UPTIME_KUMA_DB_NAME: "db2_uptimekuma_dp7j",
                   UPTIME_KUMA_DB_USER: "u2_uptimekuma_dp7j",
                   UPTIME_KUMA_DB_PASS: "G2prBHnAYJQzahZc"
                 }
               }]
-            };
-            PM2EOF
+            };\n' "$PROXY_DIR" "$KUMA_API_KEY" > "$PROXY_DIR/ecosystem.config.js"
+
+            echo "=== Ecosystem config ==="
+            cat "$PROXY_DIR/ecosystem.config.js"
 
             # Restart kuma-proxy on port 3000
             cd "$PROXY_DIR"
@@ -50,9 +54,9 @@ jobs:
             sleep 2
 
             echo "=== Test health via port 3000 ==="
-            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" http://127.0.0.1:3000/health
+            curl -s -H "Authorization: Bearer $KUMA_API_KEY" http://127.0.0.1:3000/health
             echo ""
 
             echo "=== Test status via port 3000 ==="
-            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" "http://127.0.0.1:3000/status?monitorId=1"
+            curl -s -H "Authorization: Bearer $KUMA_API_KEY" "http://127.0.0.1:3000/status?monitorId=1"
             echo ""
