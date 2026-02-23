@@ -1,0 +1,176 @@
+name: Deploy Kuma Proxy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy kuma-proxy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            set -e
+
+            PROXY_DIR="$HOME/kuma-proxy"
+            mkdir -p "$PROXY_DIR"
+
+            # Write server.js
+            cat > "$PROXY_DIR/server.js" << 'SERVEREOF'
+            const http = require("http");
+            const mysql = require("mysql2/promise");
+            const url = require("url");
+
+            const PORT = process.env.KUMA_PROXY_PORT || 3939;
+            const API_KEY = process.env.KUMA_PROXY_API_KEY || "";
+
+            const DB_CONFIG = {
+              host: "127.0.0.1",
+              port: 3306,
+              database: process.env.UPTIME_KUMA_DB_NAME,
+              user: process.env.UPTIME_KUMA_DB_USER,
+              password: process.env.UPTIME_KUMA_DB_PASS,
+              connectTimeout: 5000,
+            };
+
+            async function fetchUptimeStatus(monitorId) {
+              const conn = await mysql.createConnection(DB_CONFIG);
+              try {
+                const [latestRows] = await conn.execute(
+                  "SELECT status, ping, time FROM heartbeat WHERE monitor_id = ? ORDER BY time DESC LIMIT 1",
+                  [monitorId]
+                );
+                if (latestRows.length === 0) {
+                  return { status: "unknown", uptime24h: null, uptime30d: null, responseTime: null, lastCheck: null };
+                }
+                const latest = latestRows[0];
+                const [stats24h] = await conn.execute(
+                  "SELECT COUNT(*) as total, SUM(status = 1) as up_count, ROUND(AVG(ping), 0) as avg_ping FROM heartbeat WHERE monitor_id = ? AND time > DATE_SUB(NOW(), INTERVAL 24 HOUR)",
+                  [monitorId]
+                );
+                const [stats30d] = await conn.execute(
+                  "SELECT COUNT(*) as total, SUM(status = 1) as up_count FROM heartbeat WHERE monitor_id = ? AND time > DATE_SUB(NOW(), INTERVAL 30 DAY)",
+                  [monitorId]
+                );
+                const s24 = stats24h[0];
+                const s30 = stats30d[0];
+                return {
+                  status: latest.status === 1 ? "up" : "down",
+                  uptime24h: s24.total > 0 ? Math.round((s24.up_count / s24.total) * 10000) / 100 : null,
+                  uptime30d: s30.total > 0 ? Math.round((s30.up_count / s30.total) * 10000) / 100 : null,
+                  responseTime: s24.avg_ping ?? latest.ping ?? null,
+                  lastCheck: latest.time ? new Date(latest.time).toISOString() : null,
+                };
+              } finally {
+                await conn.end().catch(() => {});
+              }
+            }
+
+            const server = http.createServer(async (req, res) => {
+              res.setHeader("Content-Type", "application/json");
+              const authHeader = req.headers["authorization"];
+              if (API_KEY && authHeader !== "Bearer " + API_KEY) {
+                res.writeHead(401);
+                res.end(JSON.stringify({ error: "Unauthorized" }));
+                return;
+              }
+              const parsed = url.parse(req.url, true);
+              if (parsed.pathname === "/status" && req.method === "GET") {
+                const monitorId = parsed.query.monitorId;
+                if (!monitorId) {
+                  res.writeHead(400);
+                  res.end(JSON.stringify({ error: "Missing monitorId" }));
+                  return;
+                }
+                try {
+                  const result = await fetchUptimeStatus(monitorId);
+                  res.writeHead(200);
+                  res.end(JSON.stringify(result));
+                } catch (err) {
+                  console.error("Query failed:", err.message);
+                  res.writeHead(500);
+                  res.end(JSON.stringify({ error: "Internal error" }));
+                }
+                return;
+              }
+              if (parsed.pathname === "/health") {
+                res.writeHead(200);
+                res.end(JSON.stringify({ ok: true }));
+                return;
+              }
+              res.writeHead(404);
+              res.end(JSON.stringify({ error: "Not found" }));
+            });
+
+            server.listen(PORT, "127.0.0.1", () => {
+              console.log("Kuma proxy listening on 127.0.0.1:" + PORT);
+            });
+            SERVEREOF
+
+            # Write package.json
+            cat > "$PROXY_DIR/package.json" << 'PKGEOF'
+            {
+              "name": "kuma-proxy",
+              "private": true,
+              "dependencies": {
+                "mysql2": "^3.17.4"
+              }
+            }
+            PKGEOF
+
+            # Install dependencies
+            cd "$PROXY_DIR"
+            npm install --production
+
+            # Write PM2 ecosystem file
+            cat > "$PROXY_DIR/ecosystem.config.js" << 'PM2EOF'
+            module.exports = {
+              apps: [{
+                name: "kuma-proxy",
+                script: "server.js",
+                env: {
+                  KUMA_PROXY_PORT: "3939",
+                  KUMA_PROXY_API_KEY: "${{ secrets.KUMA_PROXY_API_KEY }}",
+                  UPTIME_KUMA_DB_NAME: "db2_uptimekuma_dp7j",
+                  UPTIME_KUMA_DB_USER: "u2_uptimekuma_dp7j",
+                  UPTIME_KUMA_DB_PASS: "G2prBHnAYJQzahZc"
+                }
+              }]
+            };
+            PM2EOF
+
+            # Start/restart with PM2
+            pm2 delete kuma-proxy 2>/dev/null || true
+            pm2 start ecosystem.config.js
+            pm2 save
+
+            echo "=== PM2 status ==="
+            pm2 status
+
+            # Test it locally
+            sleep 2
+            curl -s http://127.0.0.1:3939/health || echo "Health check failed"
+
+      - name: Configure Nginx reverse proxy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            echo "=== Checking Nginx config directory ==="
+            ls /etc/nginx/sites-enabled/ 2>/dev/null || ls /etc/nginx/conf.d/ 2>/dev/null || echo "Cannot list nginx dirs"
+
+            echo "=== Current Nginx configs ==="
+            ls -la /etc/nginx/sites-enabled/ 2>/dev/null | head -20
+            cat /etc/nginx/sites-enabled/* 2>/dev/null | grep -A2 "server_name" | head -30
+
+            echo "=== Checking if we can write nginx config ==="
+            echo "Note: If no sudo, we'll need an alternative approach"
+            sudo nginx -t 2>/dev/null && echo "Has sudo for nginx" || echo "No sudo for nginx"
