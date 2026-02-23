@@ -8,10 +8,11 @@ import type { Client, ServiceType } from "@prisma/client";
 import type { ClientWithServices } from "@/types";
 import { revalidatePath } from "next/cache";
 
-export async function getClients(): Promise<ActionResult<ClientWithServices[]>> {
+export async function getClients(includeArchived = false): Promise<ActionResult<ClientWithServices[]>> {
   try {
     await requireStaff();
     const clients = await prisma.client.findMany({
+      where: includeArchived ? {} : { isActive: true },
       orderBy: { createdAt: "desc" },
       include: { services: true },
     });
@@ -101,7 +102,7 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
   }
 }
 
-export async function deleteClient(id: string): Promise<ActionResult<null>> {
+export async function archiveClient(id: string): Promise<ActionResult<null>> {
   try {
     await requireStaff();
     await prisma.client.update({
@@ -111,7 +112,34 @@ export async function deleteClient(id: string): Promise<ActionResult<null>> {
     revalidatePath("/admin/clients");
     return { success: true, data: null };
   } catch (error) {
-    return { success: false, error: error instanceof Error ? error.message : "Failed to deactivate client" };
+    return { success: false, error: error instanceof Error ? error.message : "Failed to archive client" };
+  }
+}
+
+export async function restoreClient(id: string): Promise<ActionResult<null>> {
+  try {
+    await requireStaff();
+    await prisma.client.update({
+      where: { id },
+      data: { isActive: true },
+    });
+    revalidatePath("/admin/clients");
+    return { success: true, data: null };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to restore client" };
+  }
+}
+
+export async function deleteClient(id: string): Promise<ActionResult<null>> {
+  try {
+    await requireStaff();
+    await prisma.client.delete({
+      where: { id },
+    });
+    revalidatePath("/admin/clients");
+    return { success: true, data: null };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to delete client" };
   }
 }
 
