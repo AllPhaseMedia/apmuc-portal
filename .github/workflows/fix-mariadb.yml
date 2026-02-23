@@ -1,39 +1,31 @@
-name: Fix MariaDB Remote Access
+name: VPS Diagnostics
 
 on:
   workflow_dispatch:
 
 jobs:
-  fix:
+  diagnose:
     runs-on: ubuntu-latest
     steps:
-      - name: Diagnose port 3306 blocking
+      - name: Check Nginx configs and test proxy
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            echo "=== MySQL listening ==="
-            ss -tln | grep 3306
+            echo "=== Nginx config for new.clientsupport.app ==="
+            cat /etc/nginx/sites-available/new.clientsupport.app 2>/dev/null || echo "Not found"
 
-            echo "=== iptables rules for 3306 ==="
-            sudo iptables -L -n 2>/dev/null | grep -i 3306 || echo "No iptables rule for 3306"
-            sudo iptables -L INPUT -n -v 2>/dev/null | head -30
+            echo ""
+            echo "=== Nginx config for uptime.clientsupport.app ==="
+            cat /etc/nginx/sites-available/uptime.clientsupport.app 2>/dev/null || echo "Not found"
 
-            echo "=== UFW status ==="
-            sudo ufw status verbose 2>/dev/null || echo "UFW not available or no sudo"
+            echo ""
+            echo "=== Test kuma-proxy locally ==="
+            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" http://127.0.0.1:3939/health
+            echo ""
 
-            echo "=== Try adding UFW rule ==="
-            sudo ufw allow 3306/tcp 2>/dev/null && echo "UFW rule added" || echo "Could not add UFW rule"
-
-            echo "=== UFW status after ==="
-            sudo ufw status 2>/dev/null || echo "UFW not available"
-
-            echo "=== MySQL user grants ==="
-            mysql -u u2_uptimekuma_dp7j -pG2prBHnAYJQzahZc -e "SELECT user, host FROM mysql.user WHERE user LIKE '%uptimekuma%';" 2>&1 || echo "Cannot check grants with this user"
-
-            echo "=== Try connecting remotely to self ==="
-            mysql -u u2_uptimekuma_dp7j -pG2prBHnAYJQzahZc -h 127.0.0.1 -P 3306 db2_uptimekuma_dp7j -e "SELECT 1;" 2>&1
-
-            echo "=== Done ==="
+            echo "=== Test kuma-proxy status endpoint ==="
+            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" "http://127.0.0.1:3939/status?monitorId=1"
+            echo ""
