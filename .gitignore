@@ -50,3 +50,5 @@ next-env.d.ts
 
 # worktrees
 .worktrees/
+
+.vercel
