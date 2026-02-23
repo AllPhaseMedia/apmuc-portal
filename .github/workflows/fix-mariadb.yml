@@ -1,4 +1,4 @@
-name: Setup Kuma Proxy Nginx
+name: Move Kuma Proxy to Port 3000
 
 on:
   workflow_dispatch:
@@ -7,46 +7,52 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Add Nginx location for kuma-proxy
+      - name: Switch kuma-proxy to port 3000
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            echo "=== Check xcloud-conf directories ==="
-            ls -la /etc/nginx/xcloud-conf/ 2>/dev/null || echo "No xcloud-conf dir"
-            ls -la /etc/nginx/xcloud-conf/new.clientsupport.app/ 2>/dev/null || echo "No new.clientsupport.app xcloud-conf"
-            ls -la /etc/nginx/xcloud-conf/new.clientsupport.app/server/ 2>/dev/null || echo "No server dir"
+            set -e
+            PROXY_DIR="$HOME/kuma-proxy"
 
-            echo ""
-            echo "=== Try writing custom location snippet ==="
-            SNIPPET_DIR="/etc/nginx/xcloud-conf/new.clientsupport.app/server"
-            if [ -d "$SNIPPET_DIR" ]; then
-              cat > "$SNIPPET_DIR/kuma-proxy.conf" << 'CONFEOF'
-            location /kuma-api/ {
-                proxy_pass http://127.0.0.1:3939/;
-                proxy_http_version 1.1;
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto $scheme;
-            }
-            CONFEOF
-              echo "Snippet written to $SNIPPET_DIR/kuma-proxy.conf"
-              cat "$SNIPPET_DIR/kuma-proxy.conf"
-            else
-              echo "Cannot find xcloud-conf server directory"
-            fi
+            # Stop old apmuc-portal on port 3000
+            pm2 delete apmuc-portal 2>/dev/null || true
 
-            echo ""
-            echo "=== Test nginx config ==="
-            sudo nginx -t 2>&1 || echo "Cannot test nginx (no sudo)"
+            # Update ecosystem to use port 3000
+            cat > "$PROXY_DIR/ecosystem.config.js" << 'PM2EOF'
+            module.exports = {
+              apps: [{
+                name: "kuma-proxy",
+                script: "server.js",
+                cwd: "$HOME/kuma-proxy",
+                env: {
+                  KUMA_PROXY_PORT: "3000",
+                  KUMA_PROXY_API_KEY: "${{ secrets.KUMA_PROXY_API_KEY }}",
+                  UPTIME_KUMA_DB_NAME: "db2_uptimekuma_dp7j",
+                  UPTIME_KUMA_DB_USER: "u2_uptimekuma_dp7j",
+                  UPTIME_KUMA_DB_PASS: "G2prBHnAYJQzahZc"
+                }
+              }]
+            };
+            PM2EOF
 
-            echo ""
-            echo "=== Reload nginx ==="
-            sudo nginx -s reload 2>&1 || echo "Cannot reload nginx (no sudo)"
+            # Restart kuma-proxy on port 3000
+            cd "$PROXY_DIR"
+            pm2 delete kuma-proxy 2>/dev/null || true
+            pm2 start ecosystem.config.js
+            pm2 save
 
+            echo "=== PM2 status ==="
+            pm2 status
+
+            sleep 2
+
+            echo "=== Test health via port 3000 ==="
+            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" http://127.0.0.1:3000/health
             echo ""
-            echo "=== Test via localhost ==="
-            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" http://127.0.0.1/kuma-api/health 2>&1 || echo "Local test failed"
+
+            echo "=== Test status via port 3000 ==="
+            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" "http://127.0.0.1:3000/status?monitorId=1"
+            echo ""
