@@ -60,7 +60,8 @@
       "Bash(npx vercel:*)",
       "Bash(cd C:/Users/mikee/APM-APPS/apmuc-portal && DATABASE_URL=\"postgresql://neondb_owner:npg_2TCR5egKuWFQ@ep-empty-dawn-aiyca9vz-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" npx prisma db push 2>&1)",
       "Bash(cd C:/Users/mikee/APM-APPS/apmuc-portal && MYSQL_URL=\"mysql://apmuc-portal:y8I4Lb-iAjHo0ya!@5.161.211.68:3306/apmuc_portal\" DATABASE_URL=\"postgresql://neondb_owner:npg_2TCR5egKuWFQ@ep-empty-dawn-aiyca9vz-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" npx tsx scripts/migrate-mysql-to-postgres.ts 2>&1)",
-      "Bash(cd C:/Users/mikee/APM-APPS/apmuc-portal && rm .github/workflows/migrate-data.yml && git add -A && git commit -m \"$\\(cat <<'EOF'\nchore: remove one-time migration workflow\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\" 2>&1)"
+      "Bash(cd C:/Users/mikee/APM-APPS/apmuc-portal && rm .github/workflows/migrate-data.yml && git add -A && git commit -m \"$\\(cat <<'EOF'\nchore: remove one-time migration workflow\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\" 2>&1)",
+      "Bash(cd C:/Users/mikee/APM-APPS/apmuc-portal && rm .github/workflows/read-env.yml && git add -A && git commit -m \"$\\(cat <<'EOF'\nchore: remove one-time env reader workflow\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin master 2>&1)"
     ]
   }
 }
