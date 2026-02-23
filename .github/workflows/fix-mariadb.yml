@@ -1,31 +1,52 @@
-name: VPS Diagnostics
+name: Setup Kuma Proxy Nginx
 
 on:
   workflow_dispatch:
 
 jobs:
-  diagnose:
+  setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Check Nginx configs and test proxy
+      - name: Add Nginx location for kuma-proxy
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            echo "=== Nginx config for new.clientsupport.app ==="
-            cat /etc/nginx/sites-available/new.clientsupport.app 2>/dev/null || echo "Not found"
+            echo "=== Check xcloud-conf directories ==="
+            ls -la /etc/nginx/xcloud-conf/ 2>/dev/null || echo "No xcloud-conf dir"
+            ls -la /etc/nginx/xcloud-conf/new.clientsupport.app/ 2>/dev/null || echo "No new.clientsupport.app xcloud-conf"
+            ls -la /etc/nginx/xcloud-conf/new.clientsupport.app/server/ 2>/dev/null || echo "No server dir"
 
             echo ""
-            echo "=== Nginx config for uptime.clientsupport.app ==="
-            cat /etc/nginx/sites-available/uptime.clientsupport.app 2>/dev/null || echo "Not found"
+            echo "=== Try writing custom location snippet ==="
+            SNIPPET_DIR="/etc/nginx/xcloud-conf/new.clientsupport.app/server"
+            if [ -d "$SNIPPET_DIR" ]; then
+              cat > "$SNIPPET_DIR/kuma-proxy.conf" << 'CONFEOF'
+            location /kuma-api/ {
+                proxy_pass http://127.0.0.1:3939/;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            CONFEOF
+              echo "Snippet written to $SNIPPET_DIR/kuma-proxy.conf"
+              cat "$SNIPPET_DIR/kuma-proxy.conf"
+            else
+              echo "Cannot find xcloud-conf server directory"
+            fi
 
             echo ""
-            echo "=== Test kuma-proxy locally ==="
-            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" http://127.0.0.1:3939/health
-            echo ""
+            echo "=== Test nginx config ==="
+            sudo nginx -t 2>&1 || echo "Cannot test nginx (no sudo)"
 
-            echo "=== Test kuma-proxy status endpoint ==="
-            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" "http://127.0.0.1:3939/status?monitorId=1"
             echo ""
+            echo "=== Reload nginx ==="
+            sudo nginx -s reload 2>&1 || echo "Cannot reload nginx (no sudo)"
+
+            echo ""
+            echo "=== Test via localhost ==="
+            curl -s -H "Authorization: Bearer ${{ secrets.KUMA_PROXY_API_KEY }}" http://127.0.0.1/kuma-api/health 2>&1 || echo "Local test failed"
