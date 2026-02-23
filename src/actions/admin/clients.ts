@@ -7,6 +7,7 @@ import type { ActionResult } from "@/types";
 import type { Client, ServiceType } from "@prisma/client";
 import type { ClientWithServices } from "@/types";
 import { revalidatePath } from "next/cache";
+import { runSiteCheck } from "@/lib/site-checks";
 
 export async function getClients(includeArchived = false): Promise<ActionResult<ClientWithServices[]>> {
   try {
@@ -64,6 +65,14 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
     });
 
     revalidatePath("/admin/clients");
+
+    // Fire-and-forget site check if client has a website URL
+    if (client.websiteUrl) {
+      runSiteCheck(client.id, client.websiteUrl).catch((err) =>
+        console.error(`Site check failed for new client ${client.id}:`, err)
+      );
+    }
+
     return { success: true, data: client };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Failed to create client" };
@@ -96,6 +105,14 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
 
     revalidatePath("/admin/clients");
     revalidatePath(`/admin/clients/${id}`);
+
+    // Fire-and-forget site check if website URL is set
+    if (client.websiteUrl) {
+      runSiteCheck(client.id, client.websiteUrl).catch((err) =>
+        console.error(`Site check failed for client ${client.id}:`, err)
+      );
+    }
+
     return { success: true, data: client };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Failed to update client" };
