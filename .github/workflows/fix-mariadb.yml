@@ -1,0 +1,54 @@
+name: Fix MariaDB Remote Access
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fix MariaDB bind-address and grant remote access
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            echo "=== Current bind-address ==="
+            grep -r "bind-address" /etc/mysql/ 2>/dev/null || echo "No bind-address found in /etc/mysql/"
+            grep -r "bind-address" /etc/my.cnf 2>/dev/null || true
+
+            echo "=== MariaDB status ==="
+            systemctl status mariadb --no-pager -l 2>/dev/null || systemctl status mysql --no-pager -l 2>/dev/null || echo "Neither mariadb nor mysql service found"
+
+            echo "=== Listening ports ==="
+            ss -tln | grep 3306 || echo "MariaDB not listening on 3306"
+
+            echo "=== UFW status ==="
+            ufw status | grep 3306 || echo "No UFW rule for 3306"
+
+            echo "=== Fixing bind-address ==="
+            # Find and update bind-address in MariaDB config
+            CONF=$(grep -rl "bind-address" /etc/mysql/ 2>/dev/null | head -1)
+            if [ -n "$CONF" ]; then
+              echo "Found config: $CONF"
+              sed -i 's/^bind-address\s*=.*/bind-address = 0.0.0.0/' "$CONF"
+              echo "Updated bind-address to 0.0.0.0"
+              grep "bind-address" "$CONF"
+            else
+              echo "No bind-address directive found, checking if MariaDB already listens on all interfaces"
+            fi
+
+            echo "=== Granting remote access ==="
+            mysql -e "GRANT ALL ON db2_uptimekuma_dp7j.* TO 'u2_uptimekuma_dp7j'@'%' IDENTIFIED BY 'G2prBHnAYJQzahZc'; FLUSH PRIVILEGES;" 2>&1 || echo "Grant failed"
+
+            echo "=== Restarting MariaDB ==="
+            systemctl restart mariadb 2>/dev/null || systemctl restart mysql 2>/dev/null || echo "Could not restart"
+
+            echo "=== Verifying ==="
+            ss -tln | grep 3306
+
+            echo "=== Opening firewall ==="
+            ufw allow 3306/tcp 2>/dev/null || echo "UFW not available or already open"
+
+            echo "=== Done ==="
