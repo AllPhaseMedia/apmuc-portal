@@ -1,4 +1,4 @@
-name: Migrate WordPress Users to Production Clerk
+name: Recreate Clerk Users for Production
 
 on:
   workflow_dispatch:
@@ -9,21 +9,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Find WordPress DB credentials on VPS
-        uses: appleboy/ssh-action@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          script: |
-            echo "=== Looking for wp-config.php ==="
-            find /var/www -name "wp-config.php" -type f 2>/dev/null | head -5
+          node-version: 20
 
-            echo "=== WP DB credentials ==="
-            for f in $(find /var/www -name "wp-config.php" -type f 2>/dev/null); do
-              echo "--- $f ---"
-              grep -E "DB_NAME|DB_USER|DB_PASSWORD|DB_HOST|table_prefix" "$f" 2>/dev/null | head -10
-            done
+      - name: Install dependencies
+        run: npm ci
 
-            echo "=== WordPress databases ==="
-            mysql -u u2_uptimekuma_dp7j -pG2prBHnAYJQzahZc -e "SHOW DATABASES;" 2>&1 | head -20 || echo "Cannot list databases"
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Recreate Clerk users
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          ADMIN_CLERK_ID: "user_3A3QAf11lF9oyoVvBmZOf1e2txD"
+        run: npx tsx scripts/recreate-clerk-users.ts
