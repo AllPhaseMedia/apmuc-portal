@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -40,6 +41,7 @@ export type ClerkUserInfo = {
   role: string;
   imageUrl: string;
   lastSignInAt: number | null;
+  linkedClients: { id: string; name: string; isPrimary: boolean }[];
 };
 
 export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
@@ -50,6 +52,25 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
     limit: 100,
     orderBy: "-last_sign_in_at",
   });
+
+  // Batch-fetch all client contacts with client names
+  const clerkIds = users.map((u) => u.id);
+  const contacts = await prisma.clientContact.findMany({
+    where: { clerkUserId: { in: clerkIds }, isActive: true },
+    select: {
+      clerkUserId: true,
+      isPrimary: true,
+      client: { select: { id: true, name: true } },
+    },
+  });
+
+  // Group by clerkUserId
+  const contactsByUser = new Map<string, { id: string; name: string; isPrimary: boolean }[]>();
+  for (const c of contacts) {
+    const list = contactsByUser.get(c.clerkUserId) ?? [];
+    list.push({ id: c.client.id, name: c.client.name, isPrimary: c.isPrimary });
+    contactsByUser.set(c.clerkUserId, list);
+  }
 
   return users.map((u) => {
     const rawRole = (u.publicMetadata as Record<string, string>)?.role ?? "client";
@@ -62,6 +83,7 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
       role,
       imageUrl: u.imageUrl,
       lastSignInAt: u.lastSignInAt,
+      linkedClients: contactsByUser.get(u.id) ?? [],
     };
   });
 }
