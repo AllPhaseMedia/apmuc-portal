@@ -19,6 +19,7 @@ import {
   EditUserDialog,
   DeleteUserButton,
 } from "@/components/admin/user-dialogs";
+import { UserTags } from "@/components/admin/user-tags";
 import { format } from "date-fns";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
@@ -94,21 +95,7 @@ export default async function AdminUsersPage() {
                   />
                 </TableCell>
                 <TableCell>
-                  {user.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {user.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
+                  <UserTags userId={user.id} tags={user.tags} />
                 </TableCell>
                 <TableCell>
                   {user.linkedClients.length > 0 ? (
