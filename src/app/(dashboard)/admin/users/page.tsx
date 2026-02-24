@@ -11,9 +11,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { ImpersonateButton } from "@/components/admin/impersonate-button";
 import { RoleSelect } from "@/components/admin/role-select";
+import {
+  CreateUserDialog,
+  EditUserDialog,
+  DeleteUserButton,
+} from "@/components/admin/user-dialogs";
 import { format } from "date-fns";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 
 const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   admin: "default",
@@ -33,11 +40,19 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-        <p className="text-muted-foreground">
-          Manage user roles and impersonate users.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+          <p className="text-muted-foreground">
+            Manage user accounts, roles, and impersonation.
+          </p>
+        </div>
+        <CreateUserDialog>
+          <Button>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Create User
+          </Button>
+        </CreateUserDialog>
       </div>
 
       <div className="rounded-md border">
@@ -100,12 +115,37 @@ export default async function AdminUsersPage() {
                     : "Never"}
                 </TableCell>
                 <TableCell>
-                  {user.id !== currentUser.clerkUserId && (
-                    <ImpersonateButton
-                      userId={user.id}
-                      userName={user.name}
-                    />
-                  )}
+                  <div className="flex items-center gap-1">
+                    <EditUserDialog user={user}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </EditUserDialog>
+                    {user.id !== currentUser.clerkUserId && (
+                      <>
+                        <DeleteUserButton
+                          userId={user.id}
+                          userName={user.name}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </DeleteUserButton>
+                        <ImpersonateButton
+                          userId={user.id}
+                          userName={user.name}
+                        />
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
