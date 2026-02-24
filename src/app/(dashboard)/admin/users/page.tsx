@@ -1,47 +1,17 @@
 import { requireAdmin } from "@/lib/auth";
 import { listClerkUsers } from "@/actions/admin/impersonate";
 import { listTags } from "@/actions/admin/tags";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ImpersonateButton } from "@/components/admin/impersonate-button";
-import { RoleSelect } from "@/components/admin/role-select";
-import {
-  CreateUserDialog,
-  EditUserDialog,
-  DeleteUserButton,
-} from "@/components/admin/user-dialogs";
-import { UserTags } from "@/components/admin/user-tags";
-import { format } from "date-fns";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-
-const ROLE_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
-  admin: "default",
-  team_member: "secondary",
-  client: "outline",
-};
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Admin",
-  team_member: "Team Member",
-  client: "Client",
-};
+import { CreateUserDialog } from "@/components/admin/user-dialogs";
+import { UsersTable } from "@/components/admin/users-table";
+import { Plus } from "lucide-react";
 
 export default async function AdminUsersPage() {
   const currentUser = await requireAdmin();
   const [users, allTags] = await Promise.all([listClerkUsers(), listTags()]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Users</h1>
@@ -57,107 +27,11 @@ export default async function AdminUsersPage() {
         </CreateUserDialog>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Tags</TableHead>
-              <TableHead>Linked Clients</TableHead>
-              <TableHead>Last Sign In</TableHead>
-              <TableHead className="w-[200px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.imageUrl} />
-                      <AvatarFallback>
-                        {user.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <RoleSelect
-                    userId={user.id}
-                    currentRole={user.role}
-                    isCurrentUser={user.id === currentUser.clerkUserId}
-                  />
-                </TableCell>
-                <TableCell>
-                  <UserTags userId={user.id} tags={user.tags} allTags={allTags} />
-                </TableCell>
-                <TableCell>
-                  {user.linkedClients.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {user.linkedClients.map((c) => (
-                        <Badge
-                          key={c.id}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {c.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {user.lastSignInAt
-                    ? format(new Date(user.lastSignInAt), "MMM d, yyyy")
-                    : "Never"}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <EditUserDialog user={user}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </EditUserDialog>
-                    {user.id !== currentUser.clerkUserId && (
-                      <>
-                        <DeleteUserButton
-                          userId={user.id}
-                          userName={user.name}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </DeleteUserButton>
-                        <ImpersonateButton
-                          userId={user.id}
-                          userName={user.name}
-                        />
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <UsersTable
+        users={users}
+        allTags={allTags}
+        currentClerkUserId={currentUser.clerkUserId}
+      />
     </div>
   );
 }

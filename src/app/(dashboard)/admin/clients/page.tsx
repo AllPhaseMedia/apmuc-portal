@@ -1,17 +1,8 @@
 import { requireStaff } from "@/lib/auth";
 import { getClients } from "@/actions/admin/clients";
-import { SERVICE_TYPE_LABELS } from "@/lib/constants";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ClientsTable } from "@/components/admin/clients-table";
 import { Plus, Archive } from "lucide-react";
 
 interface PageProps {
@@ -33,7 +24,7 @@ export default async function AdminClientsPage({ searchParams }: PageProps) {
   const archivedCount = showArchived ? clients.filter((c) => !c.isActive).length : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
@@ -57,53 +48,7 @@ export default async function AdminClientsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Services</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {clients.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
-                  No clients yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              clients.map((client) => (
-                <TableRow key={client.id} className={!client.isActive ? "opacity-50" : ""}>
-                  <TableCell>
-                    <Link
-                      href={`/admin/clients/${client.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {client.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {client.services.map((s) => (
-                        <Badge key={s.id} variant="secondary" className="text-xs">
-                          {SERVICE_TYPE_LABELS[s.type] ?? s.type}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={client.isActive ? "default" : "outline"}>
-                      {client.isActive ? "Active" : "Archived"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <ClientsTable clients={clients} />
     </div>
   );
 }
