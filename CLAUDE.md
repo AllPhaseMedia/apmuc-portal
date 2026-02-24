@@ -7,8 +7,8 @@
 - **Framework**: Next.js 15 (App Router)
 - **Styling**: Tailwind CSS + shadcn/ui (new-york style) + Lucide icons
 - **Auth**: Clerk (admin role via `publicMetadata.role === "admin"`)
-- **Database**: MySQL (xCloud VPS) + Prisma 6
-- **Hosting**: xCloud VPS (self-hosted, `next start` behind Nginx)
+- **Database**: Neon PostgreSQL + Prisma 6
+- **Hosting**: Vercel (auto-deploys on push to `master`)
 
 ## Integrations
 - **Stripe** — billing, invoices, customer portal (cancellation disabled)
@@ -40,7 +40,7 @@
 - **Admin routes**: `/admin/*` protected by middleware + server action checks
 
 ## Database
-- Prisma 6 with MySQL provider (NOT Prisma 7, no `directUrl` needed)
+- Prisma 6 with PostgreSQL provider (Neon)
 - Models: Client, ClientService, SiteCheck, KBCategory, KBArticle, ArticleFeedback, RecommendedService
 - See `prisma/schema.prisma` for full schema
 
