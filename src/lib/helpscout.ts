@@ -202,7 +202,7 @@ export async function createConversation(
   if (!isConfigured()) throw new Error("Help Scout not configured");
 
   const [firstName, ...rest] = customerName.split(" ");
-  const lastName = rest.join(" ") || "";
+  const lastName = rest.join(" ") || "-";
 
   const thread: Record<string, unknown> = {
     type: "customer",
