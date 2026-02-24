@@ -61,6 +61,7 @@ export interface FormSettings {
   successMessage: string;
   redirectUrl: string | null;
   hideTitle?: boolean;
+  subject?: string;
 }
 
 // Default settings for new forms

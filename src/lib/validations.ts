@@ -101,6 +101,8 @@ export const formSettingsSchema = z.object({
   submitButtonLabel: z.string().min(1).default("Submit"),
   successMessage: z.string().min(1).default("Thanks! We'll be in touch."),
   redirectUrl: z.string().url().nullable().default(null),
+  hideTitle: z.boolean().optional(),
+  subject: z.string().optional(),
 });
 
 export const formSchema = z.object({

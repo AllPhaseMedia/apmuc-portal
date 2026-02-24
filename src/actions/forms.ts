@@ -101,10 +101,11 @@ export async function submitForm(
         .join("");
 
       // Always use form-submitted email over client record
+      const subject = settings.subject?.trim() || `[${form.name}] New Submission`;
       await createConversation(
         emailValue || clientEmail || "unknown@unknown.com",
         nameValue || "Portal User",
-        `[${form.name}] New Submission`,
+        subject,
         bodyHtml,
         allAttachments.length > 0 ? allAttachments : undefined
       );
@@ -150,9 +151,10 @@ export async function submitForm(
         adminUrl,
       });
 
+      const emailSubject = settings.subject?.trim() || `New submission: ${form.name}`;
       await sendEmail({
         to: settings.emailTo,
-        subject: `New submission: ${form.name}`,
+        subject: emailSubject,
         html,
       });
     }

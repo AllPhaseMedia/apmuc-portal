@@ -61,6 +61,21 @@ export function FormSettingsPanel({ open, onOpenChange, settings, onChange }: Fo
             </p>
           </div>
 
+          {/* Subject (for Help Scout) */}
+          {settings.type === "helpscout" && (
+            <div className="space-y-1.5">
+              <Label>Email Subject</Label>
+              <Input
+                value={settings.subject || ""}
+                onChange={(e) => update({ subject: e.target.value })}
+                placeholder={`[${"{Form Name}"}] New Submission`}
+              />
+              <p className="text-xs text-muted-foreground">
+                Subject line for Help Scout tickets. Leave blank to use form name.
+              </p>
+            </div>
+          )}
+
           {/* Store Submissions */}
           <div className="flex items-center justify-between">
             <div>
