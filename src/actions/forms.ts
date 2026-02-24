@@ -100,8 +100,13 @@ export async function submitForm(
         .map((f) => `<p><strong>${f.label}:</strong> ${f.value}</p>`)
         .join("");
 
-      // Always use form-submitted email over client record
-      const subject = settings.subject?.trim() || `[${form.name}] New Submission`;
+      // Find subject field: look for a field labeled "subject"
+      const subjectField = fields.find((f) => f.label.toLowerCase() === "subject") ||
+        fields.find((f) => f.type === "text" && f.label.toLowerCase().includes("subject"));
+      const subjectValue = subjectField ? (data[subjectField.id] as string)?.trim() : "";
+
+      // Priority: form field value → settings override → default
+      const subject = subjectValue || settings.subject?.trim() || `[${form.name}] New Submission`;
       await createConversation(
         emailValue || clientEmail || "unknown@unknown.com",
         nameValue || "Portal User",
