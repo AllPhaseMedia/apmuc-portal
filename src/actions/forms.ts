@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod/v4";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { sendEmail, buildSubmissionEmail, isEmailConfigured } from "@/lib/email";
@@ -9,12 +10,22 @@ import type { Attachment } from "@/lib/helpscout";
 import type { FormField, FormSettings } from "@/types/forms";
 import { getBranding } from "@/lib/branding";
 
+const submitFormSchema = z.object({
+  formId: z.string().uuid(),
+  data: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
+});
+
 export async function submitForm(
   formId: string,
   data: Record<string, string | string[]>
 ): Promise<ActionResult<{ message: string }>> {
   try {
-    const form = await prisma.form.findUnique({ where: { id: formId } });
+    const parsed = submitFormSchema.safeParse({ formId, data });
+    if (!parsed.success) {
+      return { success: false, error: "Invalid form data" };
+    }
+
+    const form = await prisma.form.findUnique({ where: { id: parsed.data.formId } });
     if (!form || !form.isActive) {
       return { success: false, error: "Form not found or inactive" };
     }

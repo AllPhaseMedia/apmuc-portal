@@ -15,6 +15,7 @@ import { ReplyForm } from "@/components/support/reply-form";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
 import { FileText, ImageIcon, File, Download } from "lucide-react";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   active: "default",
@@ -122,7 +123,7 @@ export default async function TicketDetailPage({ params }: Props) {
                 </div>
                 <div
                   className="prose prose-sm prose-neutral dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: thread.body }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(thread.body) }}
                 />
                 {attachments.length > 0 && (
                   <div className="mt-3 space-y-1.5 border-t pt-3">

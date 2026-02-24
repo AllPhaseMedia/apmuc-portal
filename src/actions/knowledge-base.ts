@@ -1,8 +1,14 @@
 "use server";
 
+import { z } from "zod/v4";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import type { ActionResult } from "@/types";
+
+const feedbackSchema = z.object({
+  articleId: z.string().uuid(),
+  helpful: z.boolean(),
+});
 
 export async function getPublishedCategories() {
   try {
@@ -134,6 +140,11 @@ export async function submitFeedback(
   helpful: boolean
 ): Promise<ActionResult<null>> {
   try {
+    const parsed = feedbackSchema.safeParse({ articleId, helpful });
+    if (!parsed.success) {
+      return { success: false, error: "Invalid input" };
+    }
+
     const user = await requireAuth();
 
     // Find client via ClientContact for this user
@@ -144,8 +155,8 @@ export async function submitFeedback(
 
     await prisma.articleFeedback.create({
       data: {
-        articleId,
-        helpful,
+        articleId: parsed.data.articleId,
+        helpful: parsed.data.helpful,
         clientId: contact?.clientId ?? null,
       },
     });

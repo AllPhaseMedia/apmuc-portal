@@ -1,7 +1,10 @@
 "use server";
 
+import { z } from "zod/v4";
 import { requireAuth } from "@/lib/auth";
 import { resolveClientContext } from "@/lib/client-context";
+
+const periodSchema = z.enum(["24h", "7d", "30d", "90d"]);
 import {
   fetchUmamiStats,
   fetchUmamiPageviews,
@@ -27,6 +30,7 @@ export async function getAnalyticsData(
   | { success: false; error: string }
 > {
   try {
+    const validPeriod = periodSchema.parse(period);
     await requireAuth();
 
     const ctx = await resolveClientContext();
@@ -44,10 +48,10 @@ export async function getAnalyticsData(
     }
 
     const [stats, pageviews, topPages, topReferrers] = await Promise.all([
-      fetchUmamiStats(client.umamiSiteId, period),
-      fetchUmamiPageviews(client.umamiSiteId, period),
-      fetchUmamiMetrics(client.umamiSiteId, "path", period),
-      fetchUmamiMetrics(client.umamiSiteId, "referrer", period),
+      fetchUmamiStats(client.umamiSiteId, validPeriod),
+      fetchUmamiPageviews(client.umamiSiteId, validPeriod),
+      fetchUmamiMetrics(client.umamiSiteId, "path", validPeriod),
+      fetchUmamiMetrics(client.umamiSiteId, "referrer", validPeriod),
     ]);
 
     const umamiShareUrl =

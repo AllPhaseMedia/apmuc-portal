@@ -1,3 +1,4 @@
+import "server-only";
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { cache } from "react";

@@ -1,9 +1,20 @@
 "use server";
 
+import { z } from "zod/v4";
 import { requireAuth } from "@/lib/auth";
 import { resolveClientContext } from "@/lib/client-context";
 import * as helpscout from "@/lib/helpscout";
 import type { ActionResult } from "@/types";
+
+const createTicketSchema = z.object({
+  subject: z.string().min(1, "Subject is required").max(500),
+  body: z.string().min(1, "Message is required").max(50000),
+});
+
+const replySchema = z.object({
+  conversationId: z.number().int().positive(),
+  body: z.string().min(1, "Message is required").max(50000),
+});
 
 export async function getTickets() {
   try {
@@ -90,6 +101,11 @@ export async function createTicket(
   attachments?: TicketAttachment[]
 ): Promise<ActionResult<null>> {
   try {
+    const parsed = createTicketSchema.safeParse({ subject, body });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message };
+    }
+
     const user = await requireAuth();
 
     const ctx = await resolveClientContext();
@@ -107,8 +123,8 @@ export async function createTicket(
     await helpscout.createConversation(
       ctx.userEmail,
       user.name || ctx.client.name,
-      subject,
-      body,
+      parsed.data.subject,
+      parsed.data.body,
       attachments
     );
     return { success: true, data: null };
@@ -126,6 +142,11 @@ export async function replyToTicket(
   attachments?: TicketAttachment[]
 ): Promise<ActionResult<null>> {
   try {
+    const parsed = replySchema.safeParse({ conversationId, body });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message };
+    }
+
     await requireAuth();
 
     const ctx = await resolveClientContext();
@@ -137,7 +158,21 @@ export async function replyToTicket(
       return { success: false, error: "Support system not configured." };
     }
 
-    await helpscout.replyToConversation(conversationId, ctx.userEmail, body, attachments);
+    // Verify the conversation belongs to this user
+    const conversation = await helpscout.getConversation(parsed.data.conversationId);
+    if (!conversation) {
+      return { success: false, error: "Ticket not found" };
+    }
+    const conversationEmail = (
+      conversation.primaryCustomer?.email ??
+      conversation.customer?.email ??
+      ""
+    ).toLowerCase();
+    if (conversationEmail !== ctx.userEmail.toLowerCase()) {
+      return { success: false, error: "Ticket not found" };
+    }
+
+    await helpscout.replyToConversation(parsed.data.conversationId, ctx.userEmail, parsed.data.body, attachments);
     return { success: true, data: null };
   } catch (error) {
     return {

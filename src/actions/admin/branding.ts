@@ -182,12 +182,17 @@ export async function saveHomepageBlocks(
   }
 }
 
+const HOMEPAGE_CONTENT_KEYS = ["homepageContentAbove", "homepageContentBelow"] as const;
+
 export async function saveHomepageContent(
   key: "homepageContentAbove" | "homepageContentBelow",
   html: string
 ): Promise<ActionResult<{ message: string }>> {
   try {
     await requireStaff();
+    if (!HOMEPAGE_CONTENT_KEYS.includes(key as typeof HOMEPAGE_CONTENT_KEYS[number])) {
+      return { success: false, error: "Invalid content key" };
+    }
     await upsertSetting(key, html);
     return { success: true, data: { message: "Content saved" } };
   } catch (error) {
