@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { listClerkUsers } from "@/actions/admin/impersonate";
+import { listTags } from "@/actions/admin/tags";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,10 +38,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default async function AdminUsersPage() {
   const currentUser = await requireAdmin();
-  const users = await listClerkUsers();
-
-  // Collect all unique tags across users for suggestions
-  const allTags = [...new Set(users.flatMap((u) => u.tags))].sort();
+  const [users, allTags] = await Promise.all([listClerkUsers(), listTags()]);
 
   return (
     <div className="space-y-6">

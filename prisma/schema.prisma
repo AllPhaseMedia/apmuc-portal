@@ -240,3 +240,15 @@ model SystemSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+// ============================================================
+// USER TAGS (persistent, WordPress-style)
+// ============================================================
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([name])
+}

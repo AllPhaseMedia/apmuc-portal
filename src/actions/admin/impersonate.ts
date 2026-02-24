@@ -94,9 +94,23 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
 export async function setUserTags(clerkUserId: string, tags: string[]) {
   await requireAdmin();
 
+  // Persist any new tag names to the Tag dictionary
+  const trimmed = tags.map((t) => t.trim()).filter(Boolean);
+  if (trimmed.length > 0) {
+    await Promise.all(
+      trimmed.map((name) =>
+        prisma.tag.upsert({
+          where: { name },
+          create: { name },
+          update: {},
+        })
+      )
+    );
+  }
+
   const clerk = await clerkClient();
   await clerk.users.updateUserMetadata(clerkUserId, {
-    publicMetadata: { tags },
+    publicMetadata: { tags: trimmed },
   });
 
   revalidatePath("/admin/users");
