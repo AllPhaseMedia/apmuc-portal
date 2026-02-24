@@ -7,6 +7,7 @@ import type { ActionResult } from "@/types";
 import type { Client, ServiceType } from "@prisma/client";
 import type { ClientWithServices } from "@/types";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { runSiteCheck } from "@/lib/site-checks";
 
 export async function getClients(includeArchived = false): Promise<ActionResult<ClientWithServices[]>> {
@@ -66,11 +67,18 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
 
     revalidatePath("/admin/clients");
 
-    // Fire-and-forget site check if client has a website URL
+    // Run site check after response is sent (keeps serverless function alive)
     if (client.websiteUrl) {
-      runSiteCheck(client.id, client.websiteUrl).catch((err) =>
-        console.error(`Site check failed for new client ${client.id}:`, err)
-      );
+      const url = client.websiteUrl;
+      const id = client.id;
+      after(async () => {
+        try {
+          await runSiteCheck(id, url);
+          revalidatePath(`/admin/clients/${id}`);
+        } catch (err) {
+          console.error(`Site check failed for new client ${id}:`, err);
+        }
+      });
     }
 
     return { success: true, data: client };
@@ -106,11 +114,17 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
     revalidatePath("/admin/clients");
     revalidatePath(`/admin/clients/${id}`);
 
-    // Fire-and-forget site check if website URL is set
+    // Run site check after response is sent (keeps serverless function alive)
     if (client.websiteUrl) {
-      runSiteCheck(client.id, client.websiteUrl).catch((err) =>
-        console.error(`Site check failed for client ${client.id}:`, err)
-      );
+      const url = client.websiteUrl;
+      after(async () => {
+        try {
+          await runSiteCheck(id, url);
+          revalidatePath(`/admin/clients/${id}`);
+        } catch (err) {
+          console.error(`Site check failed for client ${id}:`, err);
+        }
+      });
     }
 
     return { success: true, data: client };
