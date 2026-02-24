@@ -3,6 +3,12 @@ import "server-only";
 const BASE_URL = process.env.UMAMI_BASE_URL;
 const API_TOKEN = process.env.UMAMI_API_TOKEN;
 
+// Round to 5-minute windows so Next.js fetch cache can deduplicate requests
+const CACHE_WINDOW_MS = 5 * 60 * 1000;
+function roundedNow() {
+  return Math.floor(Date.now() / CACHE_WINDOW_MS) * CACHE_WINDOW_MS;
+}
+
 export type UmamiStats = {
   visitors: number;
   visits: number;
@@ -25,23 +31,9 @@ export async function fetchUmamiStats(
   if (!BASE_URL || !API_TOKEN) return null;
 
   try {
-    const now = Date.now();
-    let startAt: number;
-
-    switch (period) {
-      case "24h":
-        startAt = now - 24 * 60 * 60 * 1000;
-        break;
-      case "7d":
-        startAt = now - 7 * 24 * 60 * 60 * 1000;
-        break;
-      case "30d":
-        startAt = now - 30 * 24 * 60 * 60 * 1000;
-        break;
-      case "90d":
-        startAt = now - 90 * 24 * 60 * 60 * 1000;
-        break;
-    }
+    const now = roundedNow();
+    const ms = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
+    const startAt = now - ms;
 
     const params = new URLSearchParams({
       startAt: startAt.toString(),
@@ -56,6 +48,7 @@ export async function fetchUmamiStats(
           Accept: "application/json",
         },
         signal: AbortSignal.timeout(10000),
+        next: { revalidate: 300 },
       }
     );
 
@@ -122,7 +115,7 @@ export async function fetchUmamiPageviews(
   if (!BASE_URL || !API_TOKEN) return [];
 
   try {
-    const now = Date.now();
+    const now = roundedNow();
     const ms = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
     const startAt = now - ms;
     const unit = period === "24h" ? "hour" : "day";
@@ -142,6 +135,7 @@ export async function fetchUmamiPageviews(
           Accept: "application/json",
         },
         signal: AbortSignal.timeout(10000),
+        next: { revalidate: 300 },
       }
     );
 
@@ -176,7 +170,7 @@ export async function fetchUmamiMetrics(
   if (!BASE_URL || !API_TOKEN) return [];
 
   try {
-    const now = Date.now();
+    const now = roundedNow();
     const ms = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 }[period] * 86400000;
     const startAt = now - ms;
 
@@ -195,6 +189,7 @@ export async function fetchUmamiMetrics(
           Accept: "application/json",
         },
         signal: AbortSignal.timeout(10000),
+        next: { revalidate: 300 },
       }
     );
 
