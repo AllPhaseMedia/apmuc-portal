@@ -6,23 +6,26 @@ import { resolveClientContext } from "@/lib/client-context";
 import { fetchUptimeStatus, type UptimeResult } from "@/lib/uptime-kuma";
 import { fetchUmamiStats, fetchUmamiPageviews, type UmamiStats, type UmamiPageviewsEntry } from "@/lib/umami";
 import * as helpscout from "@/lib/helpscout";
-import type { Client, ClientService, SiteCheck, RecommendedService } from "@prisma/client";
+import type { Client, ClientService, SiteCheck, RecommendedService, Form } from "@prisma/client";
 import type { ContactPermissions } from "@/types";
 import type { HelpScoutConversation } from "@/lib/helpscout";
 
-export type DashboardData = {
-  client: Client & { services: ClientService[] };
-  siteCheck: SiteCheck | null;
-  uptime: UptimeResult | null;
-  analytics: UmamiStats | null;
-  sparkline: UmamiPageviewsEntry[];
-  recentTickets: HelpScoutConversation[];
-  upsellServices: RecommendedService[];
-  permissions: ContactPermissions;
+// ── Fast context (DB only, renders immediately) ─────────────
+
+type UpsellService = RecommendedService & {
+  form: Pick<Form, "id" | "name" | "fields" | "settings" | "isActive"> | null;
 };
 
-export async function getDashboardData(): Promise<
-  | { success: true; data: DashboardData }
+export type DashboardContext = {
+  client: Client & { services: ClientService[] };
+  siteCheck: SiteCheck | null;
+  upsellServices: UpsellService[];
+  permissions: ContactPermissions;
+  userEmail: string;
+};
+
+export async function getDashboardContext(): Promise<
+  | { success: true; data: DashboardContext }
   | { success: false; error: string }
 > {
   try {
@@ -35,64 +38,34 @@ export async function getDashboardData(): Promise<
 
     const { client, permissions, userEmail } = ctx;
 
-    // Fetch site check
-    const siteChecks = await prisma.siteCheck.findMany({
-      where: { clientId: client.id },
-      orderBy: { checkedAt: "desc" },
-      take: 1,
-    });
-    const siteCheck = siteChecks[0] ?? null;
-
-    // Fetch live data in parallel
-    const [uptime, analytics, sparkline, recentTickets] = await Promise.all([
-      permissions.uptime && client.uptimeKumaMonitorId
-        ? fetchUptimeStatus(client.uptimeKumaMonitorId)
-        : null,
-      permissions.analytics && client.umamiSiteId
-        ? fetchUmamiStats(client.umamiSiteId, "30d")
-        : null,
-      permissions.analytics && client.umamiSiteId
-        ? fetchUmamiPageviews(client.umamiSiteId, "30d")
-        : Promise.resolve([]),
-      permissions.support && helpscout.isConfigured()
-        ? helpscout.getConversationsByEmail(userEmail).then((convos) => {
-            const emailLower = userEmail.toLowerCase();
-            return (convos ?? [])
-              .filter((c) => {
-                const custEmail = (c.primaryCustomer?.email ?? c.customer?.email ?? "").toLowerCase();
-                return custEmail === emailLower;
-              })
-              .slice(0, 5);
-          })
-        : Promise.resolve([]),
-    ]);
-
-    // Upsell: active recommended services the client doesn't already have
-    const clientServiceTypes = client.services.map((s) => s.type);
-    const upsellServices = await prisma.recommendedService.findMany({
-      where: {
-        isActive: true,
-        type: { notIn: clientServiceTypes },
-      },
-      include: {
-        form: {
-          select: { id: true, name: true, fields: true, settings: true, isActive: true },
+    const [siteChecks, upsellServices] = await Promise.all([
+      prisma.siteCheck.findMany({
+        where: { clientId: client.id },
+        orderBy: { checkedAt: "desc" },
+        take: 1,
+      }),
+      prisma.recommendedService.findMany({
+        where: {
+          isActive: true,
+          type: { notIn: client.services.map((s) => s.type) },
         },
-      },
-      orderBy: { sortOrder: "asc" },
-    });
+        include: {
+          form: {
+            select: { id: true, name: true, fields: true, settings: true, isActive: true },
+          },
+        },
+        orderBy: { sortOrder: "asc" },
+      }),
+    ]);
 
     return {
       success: true,
       data: {
         client,
-        siteCheck,
-        uptime,
-        analytics,
-        sparkline: sparkline ?? [],
-        recentTickets: recentTickets ?? [],
+        siteCheck: siteChecks[0] ?? null,
         upsellServices,
         permissions,
+        userEmail,
       },
     };
   } catch (error) {
@@ -102,3 +75,48 @@ export async function getDashboardData(): Promise<
     };
   }
 }
+
+// ── Slow fetchers (external APIs, streamed via Suspense) ────
+
+export async function fetchDashboardAnalytics(
+  siteId: string
+): Promise<{ stats: UmamiStats | null; sparkline: UmamiPageviewsEntry[] }> {
+  const [stats, sparkline] = await Promise.all([
+    fetchUmamiStats(siteId, "30d"),
+    fetchUmamiPageviews(siteId, "30d"),
+  ]);
+  return { stats, sparkline: sparkline ?? [] };
+}
+
+export async function fetchDashboardUptime(
+  monitorId: string
+): Promise<UptimeResult | null> {
+  return fetchUptimeStatus(monitorId);
+}
+
+export async function fetchDashboardTickets(
+  email: string
+): Promise<HelpScoutConversation[]> {
+  if (!helpscout.isConfigured()) return [];
+  const convos = await helpscout.getConversationsByEmail(email);
+  const emailLower = email.toLowerCase();
+  return (convos ?? [])
+    .filter((c) => {
+      const custEmail = (c.primaryCustomer?.email ?? c.customer?.email ?? "").toLowerCase();
+      return custEmail === emailLower;
+    })
+    .slice(0, 5);
+}
+
+// ── Legacy combined fetch (kept for backward compat) ────────
+
+export type DashboardData = {
+  client: Client & { services: ClientService[] };
+  siteCheck: SiteCheck | null;
+  uptime: UptimeResult | null;
+  analytics: UmamiStats | null;
+  sparkline: UmamiPageviewsEntry[];
+  recentTickets: HelpScoutConversation[];
+  upsellServices: RecommendedService[];
+  permissions: ContactPermissions;
+};

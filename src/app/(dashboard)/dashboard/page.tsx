@@ -1,18 +1,26 @@
+import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth";
-import { getDashboardData } from "@/actions/dashboard";
+import { getDashboardContext } from "@/actions/dashboard";
 import { getBranding } from "@/lib/branding";
 import { Card, CardContent } from "@/components/ui/card";
-import { UptimeCard } from "@/components/dashboard/uptime-card";
-import { AnalyticsCard } from "@/components/dashboard/analytics-card";
 import { SSLCard } from "@/components/dashboard/ssl-card";
 import { DomainCard } from "@/components/dashboard/domain-card";
-import { RecentSupportCard } from "@/components/dashboard/recent-support-card";
+import { AnalyticsCard } from "@/components/dashboard/analytics-card";
+import { UptimeCard } from "@/components/dashboard/uptime-card";
 import { UpsellSection } from "@/components/dashboard/upsell-section";
 import { Separator } from "@/components/ui/separator";
+import {
+  DashboardAnalytics,
+  DashboardUptime,
+  DashboardSupport,
+  AnalyticsSkeleton,
+  UptimeSkeleton,
+  SupportSkeleton,
+} from "@/components/dashboard/dashboard-sections";
 
 export default async function DashboardPage() {
   const [user, branding] = await Promise.all([requireAuth(), getBranding()]);
-  const result = await getDashboardData();
+  const result = await getDashboardContext();
 
   if (!result.success) {
     return (
@@ -48,12 +56,9 @@ export default async function DashboardPage() {
   const {
     client,
     siteCheck,
-    uptime,
-    analytics,
-    sparkline,
-    recentTickets,
     upsellServices,
     permissions,
+    userEmail,
   } = result.data;
 
   return (
@@ -65,24 +70,25 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">{branding.description}</p>
       </div>
 
-      {/* Analytics Hero — full width */}
-      {permissions.analytics && (
-        <AnalyticsCard
-          analytics={analytics}
-          sparkline={sparkline}
-          configured={!!client.umamiSiteId}
-        />
-      )}
+      {/* Analytics — streamed */}
+      {permissions.analytics && client.umamiSiteId ? (
+        <Suspense fallback={<AnalyticsSkeleton />}>
+          <DashboardAnalytics siteId={client.umamiSiteId} />
+        </Suspense>
+      ) : permissions.analytics ? (
+        <AnalyticsCard analytics={null} sparkline={[]} configured={false} />
+      ) : null}
 
-      {/* 3-column grid: Uptime, SSL, Domain */}
+      {/* Grid: Uptime (streamed), SSL + Domain (instant from DB) */}
       {(permissions.uptime || permissions.siteHealth) && (
         <div className="grid gap-4 md:grid-cols-3">
-          {permissions.uptime && (
-            <UptimeCard
-              uptime={uptime}
-              configured={!!client.uptimeKumaMonitorId}
-            />
-          )}
+          {permissions.uptime && client.uptimeKumaMonitorId ? (
+            <Suspense fallback={<UptimeSkeleton />}>
+              <DashboardUptime monitorId={client.uptimeKumaMonitorId} />
+            </Suspense>
+          ) : permissions.uptime ? (
+            <UptimeCard uptime={null} configured={false} />
+          ) : null}
           {permissions.siteHealth && (
             <SSLCard siteCheck={siteCheck} websiteUrl={client.websiteUrl} />
           )}
@@ -92,12 +98,14 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Recent Support Requests */}
+      {/* Support — streamed */}
       {permissions.support && (
-        <RecentSupportCard tickets={recentTickets} />
+        <Suspense fallback={<SupportSkeleton />}>
+          <DashboardSupport email={userEmail} />
+        </Suspense>
       )}
 
-      {/* Upsell */}
+      {/* Upsell — instant from DB */}
       {upsellServices.length > 0 && (
         <>
           <Separator />
