@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import type { Client, ClientService, ClientContact } from "@prisma/client";
-import type { ContactPermissions, ContactPermission } from "@/types";
+import type { ContactPermissions } from "@/types";
 
 const ACTIVE_CLIENT_COOKIE = "apmuc_active_client";
 
@@ -18,25 +18,16 @@ export type ClientContext = {
 
 function permissionsFromContact(
   contact: ClientContact,
-  hiddenFeatures: string[]
+  client: Client
 ): ContactPermissions {
-  const perms: ContactPermissions = {
+  return {
     dashboard: contact.canDashboard,
-    billing: contact.canBilling,
-    analytics: contact.canAnalytics,
-    uptime: contact.canUptime,
+    billing: contact.canBilling && !!client.stripeCustomerId,
+    analytics: contact.canAnalytics && !!client.umamiSiteId,
+    uptime: contact.canUptime && !!client.uptimeKumaMonitorId,
     support: contact.canSupport,
-    siteHealth: contact.canSiteHealth,
+    siteHealth: contact.canSiteHealth && !!client.websiteUrl,
   };
-
-  // Apply client-level hidden features
-  for (const feature of hiddenFeatures) {
-    if (feature in perms) {
-      perms[feature as ContactPermission] = false;
-    }
-  }
-
-  return perms;
 }
 
 const clientInclude = { services: true } as const;
@@ -73,7 +64,7 @@ export const resolveClientContext = cache(async (): Promise<ClientContext | null
     return {
       client: contact.client,
       contact,
-      permissions: permissionsFromContact(contact, contact.client.hiddenFeatures),
+      permissions: permissionsFromContact(contact, contact.client),
       userEmail: user.email,
     };
   }
@@ -103,7 +94,7 @@ async function resolveForClient(
   return {
     client: contact.client,
     contact,
-    permissions: permissionsFromContact(contact, contact.client.hiddenFeatures),
+    permissions: permissionsFromContact(contact, contact.client),
     userEmail: email,
   };
 }

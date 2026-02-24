@@ -51,7 +51,6 @@ model Client {
   searchConsoleUrl    String?
   isActive            Boolean         @default(true)
   notes               String?
-  hiddenFeatures      String[]        @default([])
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
