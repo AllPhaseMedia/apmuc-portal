@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import type { ClerkUserInfo } from "@/actions/admin/impersonate";
+import { setUserTags } from "@/actions/admin/impersonate";
 import {
   createUser,
   updateUser,
   deleteUser,
 } from "@/actions/admin/users";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -172,6 +174,20 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
   const defaultLast = nameParts.slice(1).join(" ") || "";
 
   const [role, setRole] = useState<string>(user.role);
+  const [tags, setTags] = useState<string[]>(user.tags);
+  const [tagInput, setTagInput] = useState("");
+
+  function addTag() {
+    const tag = tagInput.trim();
+    if (tag && !tags.includes(tag)) {
+      setTags((prev) => [...prev, tag]);
+    }
+    setTagInput("");
+  }
+
+  function removeTag(tag: string) {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -183,11 +199,14 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
             setLoading(true);
 
             const fd = new FormData(e.currentTarget);
-            const result = await updateUser(user.id, {
-              firstName: fd.get("firstName") as string,
-              lastName: fd.get("lastName") as string,
-              role: role as "admin" | "team_member" | "client",
-            });
+            const [result] = await Promise.all([
+              updateUser(user.id, {
+                firstName: fd.get("firstName") as string,
+                lastName: fd.get("lastName") as string,
+                role: role as "admin" | "team_member" | "client",
+              }),
+              setUserTags(user.id, tags),
+            ]);
 
             if (result.success) {
               toast.success("User updated");
@@ -249,6 +268,41 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tags</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addTag();
+                    }
+                  }}
+                  placeholder="Type a tag and press Enter"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={addTag} disabled={!tagInput.trim()}>
+                  Add
+                </Button>
+              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

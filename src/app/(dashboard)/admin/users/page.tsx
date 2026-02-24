@@ -61,6 +61,7 @@ export default async function AdminUsersPage() {
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Tags</TableHead>
               <TableHead>Linked Clients</TableHead>
               <TableHead>Last Sign In</TableHead>
               <TableHead className="w-[200px]">Actions</TableHead>
@@ -91,6 +92,23 @@ export default async function AdminUsersPage() {
                     currentRole={user.role}
                     isCurrentUser={user.id === currentUser.clerkUserId}
                   />
+                </TableCell>
+                <TableCell>
+                  {user.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {user.tags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {user.linkedClients.length > 0 ? (

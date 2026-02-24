@@ -62,7 +62,6 @@ export default async function AdminClientsPage({ searchParams }: PageProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Tags</TableHead>
               <TableHead>Services</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
@@ -70,7 +69,7 @@ export default async function AdminClientsPage({ searchParams }: PageProps) {
           <TableBody>
             {clients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={3} className="text-center text-muted-foreground">
                   No clients yet.
                 </TableCell>
               </TableRow>
@@ -84,19 +83,6 @@ export default async function AdminClientsPage({ searchParams }: PageProps) {
                     >
                       {client.name}
                     </Link>
-                  </TableCell>
-                  <TableCell>
-                    {client.tags.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {client.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">

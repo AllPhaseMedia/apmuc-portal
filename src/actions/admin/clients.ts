@@ -61,7 +61,6 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
         searchConsoleUrl: data.searchConsoleUrl || null,
         notes: data.notes || null,
         isActive: data.isActive,
-        tags: data.tags,
       },
     });
 
@@ -101,7 +100,6 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
         searchConsoleUrl: data.searchConsoleUrl || null,
         notes: data.notes || null,
         isActive: data.isActive,
-        tags: data.tags,
       },
     });
 

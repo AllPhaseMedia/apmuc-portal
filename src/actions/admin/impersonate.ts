@@ -39,6 +39,7 @@ export type ClerkUserInfo = {
   email: string;
   name: string;
   role: string;
+  tags: string[];
   imageUrl: string;
   lastSignInAt: number | null;
   linkedClients: { id: string; name: string }[];
@@ -72,19 +73,34 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
   }
 
   return users.map((u) => {
-    const rawRole = (u.publicMetadata as Record<string, string>)?.role ?? "client";
+    const meta = u.publicMetadata as Record<string, unknown>;
+    const rawRole = (meta?.role as string) ?? "client";
     // Normalize legacy "employee" metadata to "team_member"
     const role = rawRole === "employee" ? "team_member" : rawRole;
+    const tags = Array.isArray(meta?.tags) ? (meta.tags as string[]) : [];
     return {
       id: u.id,
       email: u.emailAddresses[0]?.emailAddress ?? "",
       name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || (u.emailAddresses[0]?.emailAddress ?? "Unknown"),
       role,
+      tags,
       imageUrl: u.imageUrl,
       lastSignInAt: u.lastSignInAt,
       linkedClients: contactsByUser.get(u.id) ?? [],
     };
   });
+}
+
+export async function setUserTags(clerkUserId: string, tags: string[]) {
+  await requireAdmin();
+
+  const clerk = await clerkClient();
+  await clerk.users.updateUserMetadata(clerkUserId, {
+    publicMetadata: { tags },
+  });
+
+  revalidatePath("/admin/users");
+  return { success: true };
 }
 
 export async function setUserRole(clerkUserId: string, role: "admin" | "team_member" | "client") {

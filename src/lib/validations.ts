@@ -14,7 +14,6 @@ export const clientFormSchema = z.object({
   searchConsoleUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
   notes: z.string().optional().or(z.literal("")),
   isActive: z.boolean().default(true),
-  tags: z.array(z.string()).default([]),
 });
 
 export type ClientFormValues = z.infer<typeof clientFormSchema>;

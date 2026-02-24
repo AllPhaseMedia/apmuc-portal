@@ -51,7 +51,6 @@ model Client {
   searchConsoleUrl    String?
   isActive            Boolean         @default(true)
   notes               String?
-  tags                String[]        @default([])
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
