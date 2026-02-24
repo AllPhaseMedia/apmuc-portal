@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { setUserTags } from "@/actions/admin/impersonate";
@@ -11,13 +11,21 @@ import { X } from "lucide-react";
 type Props = {
   userId: string;
   tags: string[];
+  allTags: string[];
 };
 
-export function UserTags({ userId, tags: initialTags }: Props) {
+export function UserTags({ userId, tags: initialTags, allTags }: Props) {
   const router = useRouter();
   const [tags, setTags] = useState(initialTags);
   const [input, setInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Tags not already on this user, filtered by input
+  const suggestions = allTags.filter(
+    (t) => !tags.includes(t) && t.toLowerCase().includes(input.toLowerCase())
+  );
 
   async function save(newTags: string[]) {
     setSaving(true);
@@ -31,12 +39,13 @@ export function UserTags({ userId, tags: initialTags }: Props) {
     router.refresh();
   }
 
-  function addTag() {
-    const tag = input.trim();
+  function addTag(value?: string) {
+    const tag = (value ?? input).trim();
     if (tag && !tags.includes(tag)) {
       save([...tags, tag]);
     }
     setInput("");
+    setShowSuggestions(false);
   }
 
   function removeTag(tag: string) {
@@ -58,22 +67,51 @@ export function UserTags({ userId, tags: initialTags }: Props) {
           </button>
         </Badge>
       ))}
-      <Input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            addTag();
-          }
-        }}
-        onBlur={() => {
-          if (input.trim()) addTag();
-        }}
-        disabled={saving}
-        placeholder="+ tag"
-        className="h-6 w-20 text-xs px-1.5 border-dashed"
-      />
+      <div className="relative">
+        <Input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setShowSuggestions(true);
+          }}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => {
+            // Delay to allow click on suggestion
+            setTimeout(() => setShowSuggestions(false), 150);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addTag();
+            }
+            if (e.key === "Escape") {
+              setShowSuggestions(false);
+            }
+          }}
+          disabled={saving}
+          placeholder="+ tag"
+          className="h-6 w-20 text-xs px-1.5 border-dashed"
+        />
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute top-full left-0 z-50 mt-1 w-32 rounded-md border bg-popover p-1 shadow-md">
+            {suggestions.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  addTag(tag);
+                  inputRef.current?.focus();
+                }}
+                className="flex w-full items-center rounded-sm px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -39,6 +39,9 @@ export default async function AdminUsersPage() {
   const currentUser = await requireAdmin();
   const users = await listClerkUsers();
 
+  // Collect all unique tags across users for suggestions
+  const allTags = [...new Set(users.flatMap((u) => u.tags))].sort();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -95,7 +98,7 @@ export default async function AdminUsersPage() {
                   />
                 </TableCell>
                 <TableCell>
-                  <UserTags userId={user.id} tags={user.tags} />
+                  <UserTags userId={user.id} tags={user.tags} allTags={allTags} />
                 </TableCell>
                 <TableCell>
                   {user.linkedClients.length > 0 ? (
