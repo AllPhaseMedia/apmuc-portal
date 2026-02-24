@@ -20,10 +20,11 @@ export default async function DashboardLayout({
       getAccessibleClients(),
     ]);
 
-  // Show admin nav if the REAL user is staff (admin or team member)
-  const isStaff = realUser?.isStaff ?? false;
-  const isAdmin = realUser?.isAdmin ?? false;
   const isImpersonating = !!effectiveUser?.impersonating;
+
+  // Hide admin nav when impersonating so the admin sees what the user sees
+  const isStaff = isImpersonating ? false : (realUser?.isStaff ?? false);
+  const isAdmin = isImpersonating ? false : (realUser?.isAdmin ?? false);
 
   return (
     <SidebarProvider>
