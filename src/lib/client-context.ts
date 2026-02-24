@@ -5,30 +5,22 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import type { Client, ClientService, ClientContact } from "@prisma/client";
-import type { ContactPermissions } from "@/types";
+import type { ContactPermissions, ContactPermission } from "@/types";
 
 const ACTIVE_CLIENT_COOKIE = "apmuc_active_client";
 
-const ALL_TRUE: ContactPermissions = {
-  dashboard: true,
-  billing: true,
-  analytics: true,
-  uptime: true,
-  support: true,
-  siteHealth: true,
-};
-
 export type ClientContext = {
   client: Client & { services: ClientService[] };
-  accessType: "primary" | "contact";
   contact: ClientContact;
   permissions: ContactPermissions;
   userEmail: string;
 };
 
-function permissionsFromContact(contact: ClientContact): ContactPermissions {
-  if (contact.isPrimary) return ALL_TRUE;
-  return {
+function permissionsFromContact(
+  contact: ClientContact,
+  hiddenFeatures: string[]
+): ContactPermissions {
+  const perms: ContactPermissions = {
     dashboard: contact.canDashboard,
     billing: contact.canBilling,
     analytics: contact.canAnalytics,
@@ -36,6 +28,15 @@ function permissionsFromContact(contact: ClientContact): ContactPermissions {
     support: contact.canSupport,
     siteHealth: contact.canSiteHealth,
   };
+
+  // Apply client-level hidden features
+  for (const feature of hiddenFeatures) {
+    if (feature in perms) {
+      perms[feature as ContactPermission] = false;
+    }
+  }
+
+  return perms;
 }
 
 const clientInclude = { services: true } as const;
@@ -71,9 +72,8 @@ export const resolveClientContext = cache(async (): Promise<ClientContext | null
   if (contact && contact.client.isActive) {
     return {
       client: contact.client,
-      accessType: contact.isPrimary ? "primary" : "contact",
       contact,
-      permissions: permissionsFromContact(contact),
+      permissions: permissionsFromContact(contact, contact.client.hiddenFeatures),
       userEmail: user.email,
     };
   }
@@ -102,9 +102,8 @@ async function resolveForClient(
 
   return {
     client: contact.client,
-    accessType: contact.isPrimary ? "primary" : "contact",
     contact,
-    permissions: permissionsFromContact(contact),
+    permissions: permissionsFromContact(contact, contact.client.hiddenFeatures),
     userEmail: email,
   };
 }
@@ -113,7 +112,7 @@ async function resolveForClient(
  * Get all clients a user can access (for the client switcher).
  */
 export const getAccessibleClients = cache(async (): Promise<
-  { id: string; name: string; accessType: "primary" | "contact" }[]
+  { id: string; name: string }[]
 > => {
   const user = await getAuthUser();
   if (!user) return [];
@@ -125,13 +124,12 @@ export const getAccessibleClients = cache(async (): Promise<
     },
   });
 
-  const results: { id: string; name: string; accessType: "primary" | "contact" }[] = [];
+  const results: { id: string; name: string }[] = [];
   for (const c of contacts) {
     if (c.client.isActive && !results.some((r) => r.id === c.client.id)) {
       results.push({
         id: c.client.id,
         name: c.client.name,
-        accessType: c.isPrimary ? "primary" : "contact",
       });
     }
   }

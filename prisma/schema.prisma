@@ -51,6 +51,7 @@ model Client {
   searchConsoleUrl    String?
   isActive            Boolean         @default(true)
   notes               String?
+  hiddenFeatures      String[]        @default([])
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
@@ -68,7 +69,6 @@ model ClientContact {
   email         String
   name          String
   roleLabel     String?
-  isPrimary     Boolean  @default(false)
   canDashboard  Boolean  @default(true)
   canBilling    Boolean  @default(true)
   canAnalytics  Boolean  @default(true)

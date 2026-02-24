@@ -11,7 +11,6 @@ import { listClerkUsers, type ClerkUserInfo } from "@/actions/admin/impersonate"
 
 const addContactSchema = z.object({
   clerkUserId: z.string().min(1, "User is required"),
-  isPrimary: z.boolean().default(false),
   roleLabel: z.string().optional(),
   canDashboard: z.boolean().default(true),
   canBilling: z.boolean().default(true),
@@ -24,7 +23,6 @@ const addContactSchema = z.object({
 export type AddContactValues = z.infer<typeof addContactSchema>;
 
 const updateContactSchema = z.object({
-  isPrimary: z.boolean().optional(),
   roleLabel: z.string().optional(),
   canDashboard: z.boolean().optional(),
   canBilling: z.boolean().optional(),
@@ -74,14 +72,6 @@ export async function addClientContact(
     const email = clerkUser.emailAddresses[0]?.emailAddress ?? "";
     const name = `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() || email;
 
-    // If setting as primary, un-set existing primary for this client
-    if (data.isPrimary) {
-      await prisma.clientContact.updateMany({
-        where: { clientId, isPrimary: true },
-        data: { isPrimary: false },
-      });
-    }
-
     const contact = await prisma.clientContact.create({
       data: {
         clientId,
@@ -89,7 +79,6 @@ export async function addClientContact(
         email,
         name,
         roleLabel: data.roleLabel || null,
-        isPrimary: data.isPrimary,
         canDashboard: data.canDashboard,
         canBilling: data.canBilling,
         canAnalytics: data.canAnalytics,
@@ -126,18 +115,9 @@ export async function updateClientContact(
       return { success: false, error: "Contact not found" };
     }
 
-    // If setting as primary, un-set existing primary for this client
-    if (values.isPrimary === true && !existing.isPrimary) {
-      await prisma.clientContact.updateMany({
-        where: { clientId: existing.clientId, isPrimary: true },
-        data: { isPrimary: false },
-      });
-    }
-
     const contact = await prisma.clientContact.update({
       where: { id: contactId },
       data: {
-        ...(values.isPrimary !== undefined && { isPrimary: values.isPrimary }),
         ...(values.roleLabel !== undefined && { roleLabel: values.roleLabel || null }),
         ...(values.canDashboard !== undefined && { canDashboard: values.canDashboard }),
         ...(values.canBilling !== undefined && { canBilling: values.canBilling }),

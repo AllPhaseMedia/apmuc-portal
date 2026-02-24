@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Archive } from "lucide-react";
+import { Plus, Archive, EyeOff } from "lucide-react";
+import { PERMISSION_LABELS, type ContactPermission } from "@/types";
 
 interface PageProps {
   searchParams: Promise<{ archived?: string }>;
@@ -63,13 +64,14 @@ export default async function AdminClientsPage({ searchParams }: PageProps) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Services</TableHead>
+              <TableHead>Hidden Features</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {clients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No clients yet.
                 </TableCell>
               </TableRow>
@@ -92,6 +94,20 @@ export default async function AdminClientsPage({ searchParams }: PageProps) {
                         </Badge>
                       ))}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {client.hiddenFeatures.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {client.hiddenFeatures.map((f) => (
+                          <Badge key={f} variant="outline" className="text-xs gap-1">
+                            <EyeOff className="h-3 w-3" />
+                            {PERMISSION_LABELS[f as ContactPermission] ?? f}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant={client.isActive ? "default" : "outline"}>

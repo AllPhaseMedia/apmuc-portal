@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Client, ClientService } from "@prisma/client";
 import { SERVICE_TYPE_LABELS } from "@/lib/constants";
+import { ALL_PERMISSIONS, PERMISSION_LABELS } from "@/types";
 import { createClient, updateClient, updateClientServices } from "@/actions/admin/clients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,9 @@ export function ClientForm({ client }: Props) {
   const [selectedServices, setSelectedServices] = useState<string[]>(
     client?.services.map((s) => s.type) ?? []
   );
+  const [hiddenFeatures, setHiddenFeatures] = useState<string[]>(
+    client?.hiddenFeatures ?? []
+  );
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +47,7 @@ export function ClientForm({ client }: Props) {
       searchConsoleUrl: formData.get("searchConsoleUrl") as string,
       notes: formData.get("notes") as string,
       isActive: formData.get("isActive") === "on",
+      hiddenFeatures,
     };
 
     const result = client
@@ -69,6 +74,12 @@ export function ClientForm({ client }: Props) {
   function toggleService(type: string) {
     setSelectedServices((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  }
+
+  function toggleHiddenFeature(feature: string) {
+    setHiddenFeatures((prev) =>
+      prev.includes(feature) ? prev.filter((f) => f !== feature) : [...prev, feature]
     );
   }
 
@@ -137,6 +148,31 @@ export function ClientForm({ client }: Props) {
                 />
                 <Label htmlFor={`service-${type}`} className="font-normal">
                   {SERVICE_TYPE_LABELS[type]}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Hidden Features</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3">
+            Checked features will be hidden from all contacts on this client.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+            {ALL_PERMISSIONS.map((perm) => (
+              <div key={perm} className="flex items-center gap-2">
+                <Checkbox
+                  id={`hidden-${perm}`}
+                  checked={hiddenFeatures.includes(perm)}
+                  onCheckedChange={() => toggleHiddenFeature(perm)}
+                />
+                <Label htmlFor={`hidden-${perm}`} className="font-normal">
+                  {PERMISSION_LABELS[perm]}
                 </Label>
               </div>
             ))}

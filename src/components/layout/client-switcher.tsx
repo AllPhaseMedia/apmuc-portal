@@ -17,7 +17,6 @@ import { ChevronsUpDown, Check, Building2 } from "lucide-react";
 type ClientOption = {
   id: string;
   name: string;
-  accessType: "primary" | "contact";
 };
 
 type Props = {

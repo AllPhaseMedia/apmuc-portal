@@ -98,7 +98,7 @@ export default async function AdminUsersPage() {
                       {user.linkedClients.map((c) => (
                         <Badge
                           key={c.id}
-                          variant={c.isPrimary ? "default" : "secondary"}
+                          variant="secondary"
                           className="text-xs"
                         >
                           {c.name}

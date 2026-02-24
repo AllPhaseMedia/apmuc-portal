@@ -41,7 +41,7 @@ export type ClerkUserInfo = {
   role: string;
   imageUrl: string;
   lastSignInAt: number | null;
-  linkedClients: { id: string; name: string; isPrimary: boolean }[];
+  linkedClients: { id: string; name: string }[];
 };
 
 export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
@@ -59,16 +59,15 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
     where: { clerkUserId: { in: clerkIds }, isActive: true },
     select: {
       clerkUserId: true,
-      isPrimary: true,
       client: { select: { id: true, name: true } },
     },
   });
 
   // Group by clerkUserId
-  const contactsByUser = new Map<string, { id: string; name: string; isPrimary: boolean }[]>();
+  const contactsByUser = new Map<string, { id: string; name: string }[]>();
   for (const c of contacts) {
     const list = contactsByUser.get(c.clerkUserId) ?? [];
-    list.push({ id: c.client.id, name: c.client.name, isPrimary: c.isPrimary });
+    list.push({ id: c.client.id, name: c.client.name });
     contactsByUser.set(c.clerkUserId, list);
   }
 

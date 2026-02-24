@@ -80,7 +80,6 @@ const adminOnlyNav = [
 type ClientOption = {
   id: string;
   name: string;
-  accessType: "primary" | "contact";
 };
 
 type Props = {

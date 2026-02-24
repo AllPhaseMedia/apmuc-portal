@@ -50,7 +50,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Plus, Pencil, Trash2, UserPlus, Shield, Check, ChevronsUpDown, Crown } from "lucide-react";
+import { Plus, Pencil, Trash2, UserPlus, Shield, Check, ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -69,14 +69,6 @@ const PERM_FIELD_MAP: Record<ContactPermission, keyof AddContactValues> = {
 };
 
 function PermissionBadges({ contact }: { contact: ClientContact }) {
-  if (contact.isPrimary) {
-    return (
-      <Badge variant="default" className="text-xs">
-        All Permissions (Primary)
-      </Badge>
-    );
-  }
-
   const permMap: Record<ContactPermission, boolean> = {
     dashboard: contact.canDashboard,
     billing: contact.canBilling,
@@ -188,7 +180,6 @@ function AddContactForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<ClerkUserInfo | null>(null);
-  const [isPrimary, setIsPrimary] = useState(false);
   const [roleLabel, setRoleLabel] = useState("");
   const [permissions, setPermissions] = useState<Record<string, boolean>>({
     canDashboard: true,
@@ -209,7 +200,6 @@ function AddContactForm({
 
     const values: AddContactValues = {
       clerkUserId: selectedUser.id,
-      isPrimary,
       roleLabel,
       ...permissions,
     } as AddContactValues;
@@ -253,40 +243,27 @@ function AddContactForm({
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <Switch
-          checked={isPrimary}
-          onCheckedChange={setIsPrimary}
-        />
-        <Label className="flex items-center gap-1">
-          <Crown className="h-4 w-4" /> Primary Contact
+      <div className="space-y-3">
+        <Label className="flex items-center gap-2">
+          <Shield className="h-4 w-4" /> Permissions
         </Label>
-        <span className="text-xs text-muted-foreground">(full permissions)</span>
-      </div>
-
-      {!isPrimary && (
-        <div className="space-y-3">
-          <Label className="flex items-center gap-2">
-            <Shield className="h-4 w-4" /> Permissions
-          </Label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {ALL_PERMISSIONS.map((perm) => {
-              const fieldKey = PERM_FIELD_MAP[perm];
-              return (
-                <div key={perm} className="flex items-center gap-2">
-                  <Switch
-                    checked={permissions[fieldKey] as boolean}
-                    onCheckedChange={(checked) =>
-                      setPermissions((prev) => ({ ...prev, [fieldKey]: checked }))
-                    }
-                  />
-                  <Label className="font-normal">{PERMISSION_LABELS[perm]}</Label>
-                </div>
-              );
-            })}
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ALL_PERMISSIONS.map((perm) => {
+            const fieldKey = PERM_FIELD_MAP[perm];
+            return (
+              <div key={perm} className="flex items-center gap-2">
+                <Switch
+                  checked={permissions[fieldKey] as boolean}
+                  onCheckedChange={(checked) =>
+                    setPermissions((prev) => ({ ...prev, [fieldKey]: checked }))
+                  }
+                />
+                <Label className="font-normal">{PERMISSION_LABELS[perm]}</Label>
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onClose}>
@@ -309,7 +286,6 @@ function EditContactForm({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isPrimary, setIsPrimary] = useState(contact.isPrimary);
   const [roleLabel, setRoleLabel] = useState(contact.roleLabel ?? "");
   const [isActive, setIsActive] = useState(contact.isActive);
   const [permissions, setPermissions] = useState<Record<string, boolean>>({
@@ -326,7 +302,6 @@ function EditContactForm({
     setLoading(true);
 
     const values: UpdateContactValues = {
-      isPrimary,
       roleLabel,
       isActive,
       ...permissions,
@@ -362,37 +337,27 @@ function EditContactForm({
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <Switch checked={isPrimary} onCheckedChange={setIsPrimary} />
-        <Label className="flex items-center gap-1">
-          <Crown className="h-4 w-4" /> Primary Contact
+      <div className="space-y-3">
+        <Label className="flex items-center gap-2">
+          <Shield className="h-4 w-4" /> Permissions
         </Label>
-        <span className="text-xs text-muted-foreground">(full permissions)</span>
-      </div>
-
-      {!isPrimary && (
-        <div className="space-y-3">
-          <Label className="flex items-center gap-2">
-            <Shield className="h-4 w-4" /> Permissions
-          </Label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {ALL_PERMISSIONS.map((perm) => {
-              const fieldKey = PERM_FIELD_MAP[perm];
-              return (
-                <div key={perm} className="flex items-center gap-2">
-                  <Switch
-                    checked={permissions[fieldKey] as boolean}
-                    onCheckedChange={(checked) =>
-                      setPermissions((prev) => ({ ...prev, [fieldKey]: checked }))
-                    }
-                  />
-                  <Label className="font-normal">{PERMISSION_LABELS[perm]}</Label>
-                </div>
-              );
-            })}
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {ALL_PERMISSIONS.map((perm) => {
+            const fieldKey = PERM_FIELD_MAP[perm];
+            return (
+              <div key={perm} className="flex items-center gap-2">
+                <Switch
+                  checked={permissions[fieldKey] as boolean}
+                  onCheckedChange={(checked) =>
+                    setPermissions((prev) => ({ ...prev, [fieldKey]: checked }))
+                  }
+                />
+                <Label className="font-normal">{PERMISSION_LABELS[perm]}</Label>
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       <div className="flex items-center gap-2">
         <Switch checked={isActive} onCheckedChange={setIsActive} />
@@ -470,12 +435,6 @@ export function ClientContacts({ clientId, contacts }: Props) {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{contact.name}</span>
-                      {contact.isPrimary && (
-                        <Badge variant="default" className="text-xs bg-amber-600">
-                          <Crown className="mr-1 h-3 w-3" />
-                          Primary
-                        </Badge>
-                      )}
                       {contact.roleLabel && (
                         <Badge variant="secondary" className="text-xs">
                           {contact.roleLabel}
