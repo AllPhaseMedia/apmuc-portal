@@ -12,8 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { X } from "lucide-react";
 
 type Props = {
   client?: Client & { services: ClientService[] };
@@ -27,6 +29,21 @@ export function ClientForm({ client }: Props) {
   const [selectedServices, setSelectedServices] = useState<string[]>(
     client?.services.map((s) => s.type) ?? []
   );
+  const [tags, setTags] = useState<string[]>(client?.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
+
+  function addTag() {
+    const tag = tagInput.trim();
+    if (tag && !tags.includes(tag)) {
+      setTags((prev) => [...prev, tag]);
+    }
+    setTagInput("");
+  }
+
+  function removeTag(tag: string) {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -42,6 +59,7 @@ export function ClientForm({ client }: Props) {
       searchConsoleUrl: formData.get("searchConsoleUrl") as string,
       notes: formData.get("notes") as string,
       isActive: formData.get("isActive") === "on",
+      tags,
     };
 
     const result = client
@@ -140,6 +158,47 @@ export function ClientForm({ client }: Props) {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tags</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addTag();
+                }
+              }}
+              placeholder="Type a tag and press Enter"
+              className="max-w-xs"
+            />
+            <Button type="button" variant="outline" size="sm" onClick={addTag} disabled={!tagInput.trim()}>
+              Add
+            </Button>
+          </div>
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
