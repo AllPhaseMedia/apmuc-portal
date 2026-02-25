@@ -73,8 +73,10 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
       const id = client.id;
       after(async () => {
         try {
-          await runSiteCheck(id, url);
+          const status = await runSiteCheck(id, url);
+          console.log(`Site check for new client ${id}: ${status}`);
           revalidatePath(`/admin/clients/${id}`);
+          revalidatePath("/dashboard");
         } catch (err) {
           console.error(`Site check failed for new client ${id}:`, err);
         }
@@ -119,8 +121,10 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
       const url = client.websiteUrl;
       after(async () => {
         try {
-          await runSiteCheck(id, url);
+          const status = await runSiteCheck(id, url);
+          console.log(`Site check for client ${id}: ${status}`);
           revalidatePath(`/admin/clients/${id}`);
+          revalidatePath("/dashboard");
         } catch (err) {
           console.error(`Site check failed for client ${id}:`, err);
         }
@@ -171,6 +175,27 @@ export async function deleteClient(id: string): Promise<ActionResult<null>> {
     return { success: true, data: null };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Failed to delete client" };
+  }
+}
+
+export async function triggerSiteCheck(clientId: string): Promise<ActionResult<null>> {
+  try {
+    await requireStaff();
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, websiteUrl: true },
+    });
+    if (!client) return { success: false, error: "Client not found" };
+    if (!client.websiteUrl) return { success: false, error: "No website URL configured" };
+
+    const status = await runSiteCheck(client.id, client.websiteUrl);
+    if (status !== "ok") return { success: false, error: `Site check failed: ${status}` };
+
+    revalidatePath(`/admin/clients/${clientId}`);
+    revalidatePath("/dashboard");
+    return { success: true, data: null };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to run site check" };
   }
 }
 

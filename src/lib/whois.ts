@@ -70,6 +70,7 @@ export async function lookupDomain(hostname: string): Promise<WhoisResult> {
       }
     }
 
+    console.log(`RDAP lookup for ${domain}: registrar=${registrar}, expires=${expiresAt?.toISOString() ?? "null"}`);
     return { registrar, expiresAt };
   } catch (error) {
     console.error(`RDAP lookup failed for ${hostname}:`, error);
