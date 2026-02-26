@@ -1,6 +1,6 @@
 "use server";
 
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
@@ -30,6 +30,7 @@ export async function createUser(
 ): Promise<ActionResult<{ id: string }>> {
   try {
     await requireStaff();
+    const effectiveUser = await getAuthUser();
 
     const parsed = createUserSchema.safeParse(values);
     if (!parsed.success) {
@@ -37,6 +38,11 @@ export async function createUser(
     }
 
     const { firstName, lastName, email, password, role } = parsed.data;
+
+    // Only admins can create admin users
+    if (role === "admin" && !effectiveUser?.isAdmin) {
+      return { success: false, error: "Only admins can create admin accounts" };
+    }
 
     const clerk = await clerkClient();
     const newUser = await clerk.users.createUser({
@@ -79,6 +85,7 @@ export async function updateUser(
 ): Promise<ActionResult<null>> {
   try {
     await requireStaff();
+    const effectiveUser = await getAuthUser();
 
     const parsed = updateUserSchema.safeParse(values);
     if (!parsed.success) {
@@ -86,6 +93,21 @@ export async function updateUser(
     }
 
     const { firstName, lastName, role } = parsed.data;
+
+    // Only admins can assign the admin role
+    if (role === "admin" && !effectiveUser?.isAdmin) {
+      return { success: false, error: "Only admins can assign the admin role" };
+    }
+
+    // Non-admins can't change an admin user's role
+    if (!effectiveUser?.isAdmin) {
+      const clerk = await clerkClient();
+      const target = await clerk.users.getUser(clerkUserId);
+      const targetRole = (target.publicMetadata as Record<string, unknown>)?.role;
+      if (targetRole === "admin") {
+        return { success: false, error: "Only admins can modify admin accounts" };
+      }
+    }
 
     const clerk = await clerkClient();
     await clerk.users.updateUser(clerkUserId, { firstName, lastName });

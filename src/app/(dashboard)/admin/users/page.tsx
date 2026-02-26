@@ -20,7 +20,7 @@ export default async function AdminUsersPage() {
             Manage user accounts and roles.
           </p>
         </div>
-        <CreateUserDialog>
+        <CreateUserDialog isAdmin={currentUser?.isAdmin ?? false}>
           <Button>
             <Plus className="h-4 w-4 mr-1.5" />
             Create User

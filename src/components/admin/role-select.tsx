@@ -28,12 +28,13 @@ type Props = {
   userId: string;
   currentRole: string;
   isCurrentUser: boolean;
+  isAdmin?: boolean;
 };
 
-export function RoleSelect({ userId, currentRole, isCurrentUser }: Props) {
+export function RoleSelect({ userId, currentRole, isCurrentUser, isAdmin = false }: Props) {
   const router = useRouter();
 
-  if (isCurrentUser) {
+  if (isCurrentUser || !isAdmin) {
     return (
       <Badge variant={ROLE_VARIANT[currentRole] ?? "outline"}>
         {ROLE_LABELS[currentRole] ?? currentRole}

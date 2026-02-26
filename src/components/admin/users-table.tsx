@@ -171,6 +171,7 @@ export function UsersTable({ users, allTags, currentClerkUserId, isAdmin = false
                       userId={user.id}
                       currentRole={user.role}
                       isCurrentUser={user.id === currentClerkUserId}
+                      isAdmin={isAdmin}
                     />
                   </TableCell>
                   <TableCell>
@@ -206,7 +207,7 @@ export function UsersTable({ users, allTags, currentClerkUserId, isAdmin = false
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <EditUserDialog user={user}>
+                      <EditUserDialog user={user} isAdmin={isAdmin}>
                         <Button
                           variant="ghost"
                           size="icon"

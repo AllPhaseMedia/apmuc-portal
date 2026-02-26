@@ -51,7 +51,7 @@ const ROLE_OPTIONS = [
 
 // ── Create User Dialog ──────────────────────────────────────────────
 
-export function CreateUserDialog({ children }: { children: React.ReactNode }) {
+export function CreateUserDialog({ children, isAdmin = false }: { children: React.ReactNode; isAdmin?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -128,7 +128,7 @@ export function CreateUserDialog({ children }: { children: React.ReactNode }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLE_OPTIONS.map((r) => (
+                  {ROLE_OPTIONS.filter((r) => isAdmin || r.value !== "admin").map((r) => (
                     <SelectItem key={r.value} value={r.value}>
                       {r.label}
                     </SelectItem>
@@ -161,9 +161,10 @@ export function CreateUserDialog({ children }: { children: React.ReactNode }) {
 type EditUserDialogProps = {
   user: ClerkUserInfo;
   children: React.ReactNode;
+  isAdmin?: boolean;
 };
 
-export function EditUserDialog({ user, children }: EditUserDialogProps) {
+export function EditUserDialog({ user, children, isAdmin = false }: EditUserDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -256,18 +257,22 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isAdmin ? (
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLE_OPTIONS.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input value={ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role} disabled />
+              )}
             </div>
             <div className="space-y-2">
               <Label>Tags</Label>

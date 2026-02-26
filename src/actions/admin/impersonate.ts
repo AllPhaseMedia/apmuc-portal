@@ -118,7 +118,7 @@ export async function setUserTags(clerkUserId: string, tags: string[]) {
 }
 
 export async function setUserRole(clerkUserId: string, role: "admin" | "team_member" | "client") {
-  await requireStaff();
+  await requireAdmin();
 
   const clerk = await clerkClient();
   await clerk.users.updateUserMetadata(clerkUserId, {
