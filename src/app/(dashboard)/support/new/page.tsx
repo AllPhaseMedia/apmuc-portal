@@ -17,7 +17,7 @@ export default async function NewTicketRoute() {
 
   // Check for a dynamic support-request form
   const dynamicForm = await prisma.form.findFirst({
-    where: { slug: "support-request", isActive: true },
+    where: { slug: "support-home", isActive: true },
   });
 
   const prefill = {
