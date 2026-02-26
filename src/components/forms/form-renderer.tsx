@@ -216,6 +216,7 @@ export function FormRenderer({
                   onChange={(e) => setValue(field.id, e.target.value)}
                   disabled={disabled}
                   rows={12}
+                  className="field-sizing-fixed"
                 />
               )}
 
