@@ -34,9 +34,10 @@ type Props = {
   users: ClerkUserInfo[];
   allTags: string[];
   currentClerkUserId: string;
+  isAdmin?: boolean;
 };
 
-export function UsersTable({ users, allTags, currentClerkUserId }: Props) {
+export function UsersTable({ users, allTags, currentClerkUserId, isAdmin = false }: Props) {
   const [search, setSearch] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
@@ -228,10 +229,12 @@ export function UsersTable({ users, allTags, currentClerkUserId }: Props) {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </DeleteUserButton>
-                          <ImpersonateButton
-                            userId={user.id}
-                            userName={user.name}
-                          />
+                          {isAdmin && (
+                            <ImpersonateButton
+                              userId={user.id}
+                              userName={user.name}
+                            />
+                          )}
                         </>
                       )}
                     </div>

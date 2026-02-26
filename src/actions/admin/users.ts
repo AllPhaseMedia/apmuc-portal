@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
@@ -29,7 +29,7 @@ export async function createUser(
   values: CreateUserValues
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     const parsed = createUserSchema.safeParse(values);
     if (!parsed.success) {
@@ -78,7 +78,7 @@ export async function updateUser(
   values: UpdateUserValues
 ): Promise<ActionResult<null>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     const parsed = updateUserSchema.safeParse(values);
     if (!parsed.success) {
@@ -107,7 +107,7 @@ export async function deleteUser(
   clerkUserId: string
 ): Promise<ActionResult<null>> {
   try {
-    const currentUser = await requireAdmin();
+    const currentUser = await requireStaff();
 
     if (clerkUserId === currentUser.clerkUserId) {
       return { success: false, error: "You cannot delete your own account" };

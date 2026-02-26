@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/types";
 import type { ClientContact } from "@prisma/client";
@@ -39,7 +39,7 @@ export async function getClientContacts(
   clientId: string
 ): Promise<ActionResult<ClientContact[]>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const contacts = await prisma.clientContact.findMany({
       where: { clientId },
       orderBy: { createdAt: "asc" },
@@ -58,7 +58,7 @@ export async function addClientContact(
   values: AddContactValues
 ): Promise<ActionResult<ClientContact>> {
   try {
-    await requireAdmin();
+    await requireStaff();
     const parsed = addContactSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
@@ -106,7 +106,7 @@ export async function updateClientContact(
   values: UpdateContactValues
 ): Promise<ActionResult<ClientContact>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     const existing = await prisma.clientContact.findUnique({
       where: { id: contactId },
@@ -143,7 +143,7 @@ export async function removeClientContact(
   contactId: string
 ): Promise<ActionResult<null>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     const contact = await prisma.clientContact.delete({
       where: { id: contactId },
@@ -163,7 +163,7 @@ export async function listAvailableUsers(
   clientId: string
 ): Promise<ActionResult<ClerkUserInfo[]>> {
   try {
-    await requireAdmin();
+    await requireStaff();
 
     // Get all Clerk users
     const allUsers = await listClerkUsers();

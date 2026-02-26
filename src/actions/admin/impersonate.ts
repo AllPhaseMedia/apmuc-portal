@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
@@ -46,7 +46,7 @@ export type ClerkUserInfo = {
 };
 
 export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
-  await requireAdmin();
+  await requireStaff();
 
   const clerk = await clerkClient();
   const { data: users } = await clerk.users.getUserList({
@@ -92,7 +92,7 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
 }
 
 export async function setUserTags(clerkUserId: string, tags: string[]) {
-  await requireAdmin();
+  await requireStaff();
 
   // Persist any new tag names to the Tag dictionary
   const trimmed = tags.map((t) => t.trim()).filter(Boolean);
@@ -118,7 +118,7 @@ export async function setUserTags(clerkUserId: string, tags: string[]) {
 }
 
 export async function setUserRole(clerkUserId: string, role: "admin" | "team_member" | "client") {
-  await requireAdmin();
+  await requireStaff();
 
   const clerk = await clerkClient();
   await clerk.users.updateUserMetadata(clerkUserId, {

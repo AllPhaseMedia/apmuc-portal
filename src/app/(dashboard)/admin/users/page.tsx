@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { listClerkUsers } from "@/actions/admin/impersonate";
 import { listTags } from "@/actions/admin/tags";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { UsersTable } from "@/components/admin/users-table";
 import { Plus } from "lucide-react";
 
 export default async function AdminUsersPage() {
-  const currentUser = await requireAdmin();
+  const currentUser = await requireStaff();
   const [users, allTags] = await Promise.all([listClerkUsers(), listTags()]);
 
   return (
@@ -16,7 +16,7 @@ export default async function AdminUsersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Users</h1>
           <p className="text-muted-foreground">
-            Manage user accounts, roles, and impersonation.
+            Manage user accounts and roles.
           </p>
         </div>
         <CreateUserDialog>
@@ -31,6 +31,7 @@ export default async function AdminUsersPage() {
         users={users}
         allTags={allTags}
         currentClerkUserId={currentUser.clerkUserId}
+        isAdmin={currentUser.isAdmin}
       />
     </div>
   );

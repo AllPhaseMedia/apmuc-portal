@@ -66,15 +66,11 @@ const clientNav: NavItem[] = [
 const staffNav = [
   { label: "Overview", href: "/admin", icon: "BarChart3" },
   { label: "Clients", href: "/admin/clients", icon: "Users" },
+  { label: "Users", href: "/admin/users", icon: "UserCog" },
   { label: "Knowledge Base", href: "/admin/knowledge-base", icon: "FileText" },
   { label: "Services", href: "/admin/services", icon: "Package" },
   { label: "Forms", href: "/admin/forms", icon: "ClipboardList" },
   { label: "Settings", href: "/admin/settings", icon: "Settings" },
-] as const;
-
-// Admin-only nav items (not shown to team members)
-const adminOnlyNav = [
-  { label: "Users", href: "/admin/users", icon: "UserCog" },
 ] as const;
 
 type ClientOption = {
@@ -194,21 +190,6 @@ export function AppSidebar({
                       </SidebarMenuItem>
                     );
                   })}
-                  {isAdmin &&
-                    adminOnlyNav.map((item) => {
-                      const Icon = icons[item.icon];
-                      const isActive = pathname.startsWith(item.href);
-                      return (
-                        <SidebarMenuItem key={item.href}>
-                          <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                            <Link href={item.href}>
-                              <Icon />
-                              <span>{item.label}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
