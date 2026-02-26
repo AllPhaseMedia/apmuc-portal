@@ -44,7 +44,7 @@ export async function getClient(id: string) {
 
 export async function createClient(values: ClientFormValues): Promise<ActionResult<Client>> {
   try {
-    await requireStaff();
+    const user = await requireStaff();
     const parsed = clientFormSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
@@ -55,7 +55,7 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
       data: {
         name: data.name,
         websiteUrl: data.websiteUrl || null,
-        stripeCustomerId: data.stripeCustomerId || null,
+        stripeCustomerId: user.isAdmin ? (data.stripeCustomerId || null) : undefined,
         umamiSiteId: data.umamiSiteId || null,
         umamiShareId: data.umamiShareId || null,
         uptimeKumaMonitorId: data.uptimeKumaMonitorId || null,
@@ -91,7 +91,7 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
 
 export async function updateClient(id: string, values: ClientFormValues): Promise<ActionResult<Client>> {
   try {
-    await requireStaff();
+    const user = await requireStaff();
     const parsed = clientFormSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
@@ -103,7 +103,7 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
       data: {
         name: data.name,
         websiteUrl: data.websiteUrl || null,
-        stripeCustomerId: data.stripeCustomerId || null,
+        ...(user.isAdmin && { stripeCustomerId: data.stripeCustomerId || null }),
         umamiSiteId: data.umamiSiteId || null,
         umamiShareId: data.umamiShareId || null,
         uptimeKumaMonitorId: data.uptimeKumaMonitorId || null,

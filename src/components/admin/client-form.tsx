@@ -17,11 +17,12 @@ import { Separator } from "@/components/ui/separator";
 
 type Props = {
   client?: Client & { services: ClientService[] };
+  isAdmin?: boolean;
 };
 
 const SERVICE_TYPES = Object.keys(SERVICE_TYPE_LABELS);
 
-export function ClientForm({ client }: Props) {
+export function ClientForm({ client, isAdmin = false }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>(
@@ -99,10 +100,12 @@ export function ClientForm({ client }: Props) {
           <CardTitle>Integration IDs</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="stripeCustomerId">Stripe Customer ID</Label>
-            <Input id="stripeCustomerId" name="stripeCustomerId" placeholder="cus_..." defaultValue={client?.stripeCustomerId ?? ""} />
-          </div>
+          {isAdmin && (
+            <div className="space-y-2">
+              <Label htmlFor="stripeCustomerId">Stripe Customer ID</Label>
+              <Input id="stripeCustomerId" name="stripeCustomerId" placeholder="cus_..." defaultValue={client?.stripeCustomerId ?? ""} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="umamiSiteId">Umami Site ID</Label>
             <Input id="umamiSiteId" name="umamiSiteId" defaultValue={client?.umamiSiteId ?? ""} />

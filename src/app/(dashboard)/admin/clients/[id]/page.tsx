@@ -56,7 +56,7 @@ export default async function EditClientPage({ params }: Props) {
         </div>
       )}
 
-      <ClientForm client={client} />
+      <ClientForm client={client} isAdmin={user.isAdmin} />
       <ClientContacts clientId={id} contacts={client.contacts ?? []} />
     </div>
   );
