@@ -1,4 +1,4 @@
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, getAuthUser } from "@/lib/auth";
 import { listClerkUsers } from "@/actions/admin/impersonate";
 import { listTags } from "@/actions/admin/tags";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,8 @@ import { UsersTable } from "@/components/admin/users-table";
 import { Plus } from "lucide-react";
 
 export default async function AdminUsersPage() {
-  const currentUser = await requireStaff();
+  await requireStaff();
+  const currentUser = await getAuthUser();
   const [users, allTags] = await Promise.all([listClerkUsers(), listTags()]);
 
   return (
@@ -30,8 +31,8 @@ export default async function AdminUsersPage() {
       <UsersTable
         users={users}
         allTags={allTags}
-        currentClerkUserId={currentUser.clerkUserId}
-        isAdmin={currentUser.isAdmin}
+        currentClerkUserId={currentUser?.clerkUserId ?? ""}
+        isAdmin={currentUser?.isAdmin ?? false}
       />
     </div>
   );

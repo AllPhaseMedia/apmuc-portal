@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, getAuthUser } from "@/lib/auth";
 import { clientFormSchema, type ClientFormValues } from "@/lib/validations";
 import type { ActionResult } from "@/types";
 import type { Client, ServiceType } from "@prisma/client";
@@ -44,7 +44,8 @@ export async function getClient(id: string) {
 
 export async function createClient(values: ClientFormValues): Promise<ActionResult<Client>> {
   try {
-    const user = await requireStaff();
+    await requireStaff();
+    const effectiveUser = await getAuthUser();
     const parsed = clientFormSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
@@ -55,7 +56,7 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
       data: {
         name: data.name,
         websiteUrl: data.websiteUrl || null,
-        stripeCustomerId: user.isAdmin ? (data.stripeCustomerId || null) : undefined,
+        stripeCustomerId: effectiveUser?.isAdmin ? (data.stripeCustomerId || null) : undefined,
         umamiSiteId: data.umamiSiteId || null,
         umamiShareId: data.umamiShareId || null,
         uptimeKumaMonitorId: data.uptimeKumaMonitorId || null,
@@ -91,7 +92,8 @@ export async function createClient(values: ClientFormValues): Promise<ActionResu
 
 export async function updateClient(id: string, values: ClientFormValues): Promise<ActionResult<Client>> {
   try {
-    const user = await requireStaff();
+    await requireStaff();
+    const effectiveUser = await getAuthUser();
     const parsed = clientFormSchema.safeParse(values);
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
@@ -103,7 +105,7 @@ export async function updateClient(id: string, values: ClientFormValues): Promis
       data: {
         name: data.name,
         websiteUrl: data.websiteUrl || null,
-        ...(user.isAdmin && { stripeCustomerId: data.stripeCustomerId || null }),
+        ...(effectiveUser?.isAdmin && { stripeCustomerId: data.stripeCustomerId || null }),
         umamiSiteId: data.umamiSiteId || null,
         umamiShareId: data.umamiShareId || null,
         uptimeKumaMonitorId: data.uptimeKumaMonitorId || null,

@@ -1,4 +1,4 @@
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, getAuthUser } from "@/lib/auth";
 import { getClient } from "@/actions/admin/clients";
 import { ClientForm } from "@/components/admin/client-form";
 import { ClientContacts } from "@/components/admin/client-contacts";
@@ -14,7 +14,8 @@ type Props = {
 };
 
 export default async function EditClientPage({ params }: Props) {
-  const user = await requireStaff();
+  await requireStaff();
+  const user = await getAuthUser();
   const { id } = await params;
   const result = await getClient(id);
 
@@ -56,7 +57,7 @@ export default async function EditClientPage({ params }: Props) {
         </div>
       )}
 
-      <ClientForm client={client} isAdmin={user.isAdmin} />
+      <ClientForm client={client} isAdmin={user?.isAdmin ?? false} />
       <ClientContacts clientId={id} contacts={client.contacts ?? []} />
     </div>
   );
