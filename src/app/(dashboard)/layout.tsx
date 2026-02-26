@@ -22,9 +22,14 @@ export default async function DashboardLayout({
 
   const isImpersonating = !!effectiveUser?.impersonating;
 
-  // Hide admin nav when impersonating so the admin sees what the user sees
-  const isStaff = isImpersonating ? false : (realUser?.isStaff ?? false);
-  const isAdmin = isImpersonating ? false : (realUser?.isAdmin ?? false);
+  // When impersonating, show admin nav based on the impersonated user's role
+  const impersonatedRole = effectiveUser?.impersonating?.role;
+  const isStaff = isImpersonating
+    ? (impersonatedRole === "admin" || impersonatedRole === "team_member")
+    : (realUser?.isStaff ?? false);
+  const isAdmin = isImpersonating
+    ? (impersonatedRole === "admin")
+    : (realUser?.isAdmin ?? false);
 
   return (
     <SidebarProvider>
