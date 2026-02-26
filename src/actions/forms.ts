@@ -97,7 +97,7 @@ export async function submitForm(
       const nameValue = nameField ? (data[nameField.id] as string) : "";
 
       const bodyHtml = labeledFields
-        .map((f) => `<p><strong>${f.label}:</strong> ${f.value}</p>`)
+        .map((f) => `<p><strong>${f.label}</strong><br>${f.value}</p>`)
         .join("");
 
       // Find subject field: look for a field labeled "subject"
