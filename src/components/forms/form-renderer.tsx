@@ -215,7 +215,7 @@ export function FormRenderer({
                   value={(formData[field.id] as string) || ""}
                   onChange={(e) => setValue(field.id, e.target.value)}
                   disabled={disabled}
-                  rows={4}
+                  rows={12}
                 />
               )}
 
