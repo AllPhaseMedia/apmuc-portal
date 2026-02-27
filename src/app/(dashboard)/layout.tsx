@@ -11,21 +11,15 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let effectiveUser, realUser, branding, clientCtx, accessibleClients, clientNavLinks;
-  try {
-    [effectiveUser, realUser, branding, clientCtx, accessibleClients, clientNavLinks] =
-      await Promise.all([
-        getAuthUser(),
-        getRealAuthUser(),
-        getBranding(),
-        resolveClientContext(),
-        getAccessibleClients(),
-        getClientNavLinks(),
-      ]);
-  } catch (error) {
-    console.error("[dashboard/layout] Data fetching error:", error);
-    throw error;
-  }
+  const [effectiveUser, realUser, branding, clientCtx, accessibleClients, clientNavLinks] =
+    await Promise.all([
+      getAuthUser(),
+      getRealAuthUser(),
+      getBranding(),
+      resolveClientContext(),
+      getAccessibleClients(),
+      getClientNavLinks(),
+    ]);
 
   const isImpersonating = !!effectiveUser?.impersonating;
 
