@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Settings,
   UserCog,
+  StickyNote,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 
@@ -46,6 +47,7 @@ const icons = {
   ClipboardList,
   Settings,
   UserCog,
+  StickyNote,
 } as const;
 
 type NavItem = {
@@ -70,6 +72,7 @@ const staffNav = [
   { label: "Knowledge Base", href: "/admin/knowledge-base", icon: "FileText" },
   { label: "Services", href: "/admin/services", icon: "Package" },
   { label: "Forms", href: "/admin/forms", icon: "ClipboardList" },
+  { label: "Pages", href: "/admin/pages", icon: "StickyNote" },
   { label: "Settings", href: "/admin/settings", icon: "Settings" },
 ] as const;
 
