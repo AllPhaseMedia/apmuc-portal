@@ -102,7 +102,7 @@ export default async function TicketDetailPage({ params }: Props) {
       {/* Conversation threads */}
       <div className="space-y-4">
         {visibleThreads.map((thread) => {
-          const isCustomer = thread.createdBy.type === "customer";
+          const isCustomer = thread.createdBy?.type === "customer";
           const attachments = thread._embedded?.attachments ?? thread.attachments ?? [];
           return (
             <Card
@@ -112,7 +112,7 @@ export default async function TicketDetailPage({ params }: Props) {
               <CardContent className="py-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium">
-                    {isCustomer ? "You" : `${thread.createdBy.first} ${thread.createdBy.last}`.trim() || "Support"}
+                    {isCustomer ? "You" : `${thread.createdBy?.first ?? ""} ${thread.createdBy?.last ?? ""}`.trim() || "Support"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {format(
