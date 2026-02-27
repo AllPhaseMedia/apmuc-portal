@@ -252,3 +252,20 @@ model Tag {
 
   @@index([name])
 }
+
+// ============================================================
+// CUSTOM PAGES
+// ============================================================
+
+model CustomPage {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  content     String   @default("")
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isPublished])
+}
