@@ -9,6 +9,7 @@ import type {
   FeatureBlock,
   FooterLink,
   HeaderLink,
+  ClientNavLink,
 } from "@/types/branding";
 
 async function upsertSetting(key: string, value: string) {
@@ -332,5 +333,43 @@ export async function saveDashboardMessage(
   } catch (error) {
     console.error("[branding] saveDashboardMessage error:", error);
     return { success: false, error: "Failed to save dashboard message" };
+  }
+}
+
+// ─── Client Sidebar Links ───────────────────────────────────
+
+export async function getClientNavLinks(): Promise<
+  ActionResult<{ links: ClientNavLink[] }>
+> {
+  try {
+    await requireStaff();
+    const map = await getSettingMap(["clientNavLinks"]);
+
+    let links: ClientNavLink[] = [];
+    if (map.clientNavLinks) {
+      try {
+        links = JSON.parse(map.clientNavLinks);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return { success: true, data: { links } };
+  } catch (error) {
+    console.error("[branding] getClientNavLinks error:", error);
+    return { success: false, error: "Failed to load client nav links" };
+  }
+}
+
+export async function saveClientNavLinks(
+  links: ClientNavLink[]
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireStaff();
+    await upsertSetting("clientNavLinks", JSON.stringify(links));
+    return { success: true, data: { message: "Client navigation saved" } };
+  } catch (error) {
+    console.error("[branding] saveClientNavLinks error:", error);
+    return { success: false, error: "Failed to save client navigation" };
   }
 }

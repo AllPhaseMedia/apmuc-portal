@@ -59,3 +59,11 @@ export type HomepageData = {
   footerLinks: FooterLink[];
   headerLinks: HeaderLink[];
 };
+
+export type ClientNavLink = {
+  id: string;
+  label: string;
+  href: string;
+  openInNewTab: boolean;
+  order: number;
+};

@@ -10,6 +10,7 @@ import type {
   FeatureBlock,
   FooterLink,
   HeaderLink,
+  ClientNavLink,
 } from "@/types/branding";
 
 const BRANDING_KEYS = [
@@ -133,6 +134,20 @@ export const getDashboardAnnouncement = cache(async () => {
     };
   } catch {
     return { message: "", messageId: "" };
+  }
+});
+
+export const getClientNavLinks = cache(async (): Promise<ClientNavLink[]> => {
+  try {
+    const rows = await prisma.systemSetting.findMany({
+      where: { key: "clientNavLinks" },
+    });
+    if (rows.length > 0 && rows[0].value) {
+      return JSON.parse(rows[0].value);
+    }
+    return [];
+  } catch {
+    return [];
   }
 });
 
