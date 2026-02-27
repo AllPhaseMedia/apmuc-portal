@@ -15,12 +15,14 @@ import {
   Settings,
   UserCog,
   StickyNote,
+  ExternalLink,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 
 import { BrandLogo } from "@/components/branding/brand-logo";
 import { ClientSwitcher } from "@/components/layout/client-switcher";
 import type { ContactPermissions } from "@/types";
+import type { ClientNavLink } from "@/types/branding";
 import {
   Sidebar,
   SidebarContent,
@@ -91,6 +93,7 @@ type Props = {
   permissions?: ContactPermissions | null;
   accessibleClients?: ClientOption[];
   activeClientId?: string | null;
+  customLinks?: ClientNavLink[];
 };
 
 export function AppSidebar({
@@ -103,6 +106,7 @@ export function AppSidebar({
   permissions = null,
   accessibleClients = [],
   activeClientId = null,
+  customLinks = [],
 }: Props) {
   const pathname = usePathname();
 
@@ -168,6 +172,36 @@ export function AppSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {customLinks.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {[...customLinks]
+                  .sort((a, b) => a.order - b.order)
+                  .map((link) => {
+                    const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+                    return (
+                      <SidebarMenuItem key={link.id}>
+                        <SidebarMenuButton asChild isActive={!link.openInNewTab && isActive} tooltip={link.label}>
+                          {link.openInNewTab ? (
+                            <a href={link.href} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4" />
+                              <span>{link.label}</span>
+                            </a>
+                          ) : (
+                            <Link href={link.href}>
+                              <span>{link.label}</span>
+                            </Link>
+                          )}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {isStaff && (
           <>

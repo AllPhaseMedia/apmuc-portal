@@ -1,5 +1,5 @@
 import { getAuthUser, getRealAuthUser } from "@/lib/auth";
-import { getBranding } from "@/lib/branding";
+import { getBranding, getClientNavLinks } from "@/lib/branding";
 import { resolveClientContext, getAccessibleClients } from "@/lib/client-context";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Header } from "@/components/layout/header";
@@ -11,13 +11,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [effectiveUser, realUser, branding, clientCtx, accessibleClients] =
+  const [effectiveUser, realUser, branding, clientCtx, accessibleClients, clientNavLinks] =
     await Promise.all([
       getAuthUser(),
       getRealAuthUser(),
       getBranding(),
       resolveClientContext(),
       getAccessibleClients(),
+      getClientNavLinks(),
     ]);
 
   const isImpersonating = !!effectiveUser?.impersonating;
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
         permissions={clientCtx?.permissions ?? null}
         accessibleClients={accessibleClients}
         activeClientId={clientCtx?.client.id ?? null}
+        customLinks={clientNavLinks}
       />
       <SidebarInset>
         {isImpersonating && effectiveUser?.impersonating && (
