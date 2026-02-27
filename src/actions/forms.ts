@@ -80,6 +80,7 @@ export async function submitForm(
       .map((f) => ({
         label: f.label,
         value: Array.isArray(data[f.id]) ? (data[f.id] as string[]).join(", ") : (data[f.id] as string) || "",
+        isHtml: f.type === "textarea",
       }));
 
     // Handle Help Scout type
@@ -97,7 +98,15 @@ export async function submitForm(
       const nameValue = nameField ? (data[nameField.id] as string) : "";
 
       const bodyHtml = labeledFields
-        .map((f) => `<p><strong>${f.label}</strong><br>${f.value}</p>`)
+        .map((f) => {
+          if (f.isHtml) {
+            // Rich editor textarea — value is already HTML
+            return `<p><strong>${f.label}</strong></p>${f.value}`;
+          }
+          // Plain text field — escape and use as-is
+          const escaped = f.value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          return `<p><strong>${f.label}</strong><br>${escaped}</p>`;
+        })
         .join("");
 
       // Find subject field: look for a field labeled "subject"

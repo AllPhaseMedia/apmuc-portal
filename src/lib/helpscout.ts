@@ -144,13 +144,13 @@ export type HelpScoutThread = {
   status: string;
   body: string;
   createdAt: string;
-  createdBy: {
+  createdBy?: {
     id: number;
     type: "customer" | "user";
     email: string;
     first: string;
     last: string;
-  };
+  } | null;
   source?: { type: string };
   _embedded?: {
     attachments?: HelpScoutAttachment[];

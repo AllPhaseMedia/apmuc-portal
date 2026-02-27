@@ -121,17 +121,20 @@ export default async function TicketDetailPage({ params }: Props) {
                     )}
                   </p>
                 </div>
-                <div
-                  className="prose prose-sm prose-neutral dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(thread.body) }}
-                />
+                {thread.body && (
+                  <div
+                    className="prose prose-sm prose-neutral dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(thread.body) }}
+                  />
+                )}
                 {attachments.length > 0 && (
                   <div className="mt-3 space-y-1.5 border-t pt-3">
                     <p className="text-xs font-medium text-muted-foreground">Attachments</p>
                     {attachments.map((att) => {
-                      const Icon = att.mimeType.startsWith("image/")
+                      const mimeType = att.mimeType ?? "";
+                      const Icon = mimeType.startsWith("image/")
                         ? ImageIcon
-                        : att.mimeType.includes("pdf") || att.mimeType.includes("document")
+                        : mimeType.includes("pdf") || mimeType.includes("document")
                           ? FileText
                           : File;
                       const size = att.size

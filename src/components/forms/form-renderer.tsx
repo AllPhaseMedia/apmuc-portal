@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2 } from "lucide-react";
 import { FileUploadField, fileToBase64 } from "@/components/forms/file-upload-field";
 import type { FileAttachment } from "@/components/forms/file-upload-field";
+import { SimpleRichEditor } from "@/components/forms/simple-rich-editor";
 import type { FormField, FormPrefillData, ConditionOperator } from "@/types/forms";
 
 interface FormRendererProps {
@@ -106,7 +107,12 @@ export function FormRenderer({
           }
         } else {
           const val = formData[field.id];
-          if (!val || (Array.isArray(val) && val.length === 0) || (typeof val === "string" && val.trim() === "")) {
+          const isEmpty = !val || (Array.isArray(val) && val.length === 0) || (typeof val === "string" && (
+            field.type === "textarea"
+              ? val.replace(/<[^>]*>/g, "").trim() === ""
+              : val.trim() === ""
+          ));
+          if (isEmpty) {
             newErrors[field.id] = `${field.label} is required`;
           }
         }
@@ -209,14 +215,11 @@ export function FormRenderer({
               )}
 
               {field.type === "textarea" && (
-                <Textarea
-                  id={field.id}
-                  placeholder={field.placeholder}
+                <SimpleRichEditor
                   value={(formData[field.id] as string) || ""}
-                  onChange={(e) => setValue(field.id, e.target.value)}
+                  onChange={(html) => setValue(field.id, html)}
+                  placeholder={field.placeholder}
                   disabled={disabled}
-                  rows={12}
-                  className="field-sizing-fixed"
                 />
               )}
 
