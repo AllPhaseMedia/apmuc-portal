@@ -34,7 +34,7 @@ export default async function AdminSettingsPage() {
         <TabsList>
           <TabsTrigger value="branding">Branding</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="header">Header</TabsTrigger>
+          <TabsTrigger value="header">Navigation</TabsTrigger>
           <TabsTrigger value="homepage">Homepage</TabsTrigger>
           <TabsTrigger value="footer">Footer</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
