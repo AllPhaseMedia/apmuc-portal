@@ -121,6 +121,21 @@ export const getBranding = cache(async (): Promise<BrandingSettings> => {
   }
 });
 
+export const getDashboardAnnouncement = cache(async () => {
+  try {
+    const rows = await prisma.systemSetting.findMany({
+      where: { key: { in: ["dashboardMessage", "dashboardMessageId"] } },
+    });
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    return {
+      message: map.dashboardMessage || "",
+      messageId: map.dashboardMessageId || "",
+    };
+  } catch {
+    return { message: "", messageId: "" };
+  }
+});
+
 export const getHomepageData = cache(async (): Promise<HomepageData> => {
   try {
     const allKeys = [

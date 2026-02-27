@@ -298,3 +298,39 @@ export async function saveHeaderLinks(
     return { success: false, error: "Failed to save header links" };
   }
 }
+
+// ─── Dashboard Announcement ─────────────────────────────────
+
+export async function getDashboardMessage(): Promise<
+  ActionResult<{ message: string; messageId: string }>
+> {
+  try {
+    await requireStaff();
+    const map = await getSettingMap(["dashboardMessage", "dashboardMessageId"]);
+    return {
+      success: true,
+      data: {
+        message: map.dashboardMessage ?? "",
+        messageId: map.dashboardMessageId ?? "",
+      },
+    };
+  } catch (error) {
+    console.error("[branding] getDashboardMessage error:", error);
+    return { success: false, error: "Failed to load dashboard message" };
+  }
+}
+
+export async function saveDashboardMessage(
+  message: string
+): Promise<ActionResult<{ message: string }>> {
+  try {
+    await requireStaff();
+    await upsertSetting("dashboardMessage", message);
+    // Generate new messageId so dismissed banners reappear
+    await upsertSetting("dashboardMessageId", crypto.randomUUID());
+    return { success: true, data: { message: "Dashboard message saved" } };
+  } catch (error) {
+    console.error("[branding] saveDashboardMessage error:", error);
+    return { success: false, error: "Failed to save dashboard message" };
+  }
+}
