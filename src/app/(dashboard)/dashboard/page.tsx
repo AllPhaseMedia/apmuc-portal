@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { requireAuth } from "@/lib/auth";
 import { getDashboardContext } from "@/actions/dashboard";
-import { getBranding } from "@/lib/branding";
+import { getBranding, getDashboardAnnouncement } from "@/lib/branding";
+import { AnnouncementBanner } from "@/components/dashboard/announcement-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { SSLCard } from "@/components/dashboard/ssl-card";
 import { DomainCard } from "@/components/dashboard/domain-card";
@@ -19,7 +20,11 @@ import {
 } from "@/components/dashboard/dashboard-sections";
 
 export default async function DashboardPage() {
-  const [user, branding] = await Promise.all([requireAuth(), getBranding()]);
+  const [user, branding, announcement] = await Promise.all([
+    requireAuth(),
+    getBranding(),
+    getDashboardAnnouncement(),
+  ]);
   const result = await getDashboardContext();
 
   if (!result.success) {
@@ -31,6 +36,13 @@ export default async function DashboardPage() {
           </h1>
           <p className="text-muted-foreground">{branding.description}</p>
         </div>
+
+        {announcement.message && (
+          <AnnouncementBanner
+            message={announcement.message}
+            messageId={announcement.messageId}
+          />
+        )}
 
         {user.isAdmin ? (
           <Card className="border-primary/20 bg-primary/5">
@@ -69,6 +81,13 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">{branding.description}</p>
       </div>
+
+      {announcement.message && (
+        <AnnouncementBanner
+          message={announcement.message}
+          messageId={announcement.messageId}
+        />
+      )}
 
       {/* Analytics — streamed */}
       {permissions.analytics && client.umamiSiteId ? (
