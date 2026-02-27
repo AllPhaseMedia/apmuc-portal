@@ -115,10 +115,14 @@ type Props = {
 };
 
 export default async function TicketDetailPage({ params }: Props) {
+  console.log("[support/[id]] Page function started");
   try {
+    console.log("[support/[id]] Calling requireAuth...");
     await requireAuth();
+    console.log("[support/[id]] Auth OK, extracting params...");
     const { id } = await params;
     const conversationId = Number(id);
+    console.log("[support/[id]] conversationId:", conversationId);
 
     if (isNaN(conversationId)) {
       notFound();
