@@ -79,10 +79,18 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
   await requireStaff();
 
   const clerk = await clerkClient();
-  const { data: users } = await clerk.users.getUserList({
-    limit: 100,
-    orderBy: "-last_sign_in_at",
-  });
+  const users = [];
+  let offset = 0;
+  for (;;) {
+    const { data } = await clerk.users.getUserList({
+      limit: 100,
+      orderBy: "-last_sign_in_at",
+      offset,
+    });
+    users.push(...data);
+    if (data.length < 100) break;
+    offset += 100;
+  }
 
   // Batch-fetch client contacts and Stripe emails in parallel
   const clerkIds = users.map((u) => u.id);
