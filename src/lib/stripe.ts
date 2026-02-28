@@ -36,6 +36,12 @@ export async function getCustomerPaymentMethods(customerId: string) {
   return methods.data;
 }
 
+export async function isStripeCustomer(email: string): Promise<boolean> {
+  if (!isConfigured() || !email) return false;
+  const customers = await stripe.customers.list({ email: email.toLowerCase(), limit: 1 });
+  return customers.data.length > 0;
+}
+
 export async function createBillingPortalSession(
   customerId: string,
   returnUrl: string

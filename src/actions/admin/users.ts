@@ -3,6 +3,7 @@
 import { requireStaff, getAuthUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
+import { isStripeCustomer } from "@/lib/stripe";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { ActionResult } from "@/types";
@@ -52,11 +53,15 @@ export async function createUser(
       password,
     });
 
-    if (role !== "client") {
-      await clerk.users.updateUserMetadata(newUser.id, {
-        publicMetadata: { role },
-      });
-    }
+    // Check if this email is a Stripe customer
+    const stripeCustomer = await isStripeCustomer(email);
+
+    await clerk.users.updateUserMetadata(newUser.id, {
+      publicMetadata: {
+        ...(role !== "client" ? { role } : {}),
+        ...(stripeCustomer ? { isStripeCustomer: true } : {}),
+      },
+    });
 
     revalidatePath("/admin/users");
     return { success: true, data: { id: newUser.id } };

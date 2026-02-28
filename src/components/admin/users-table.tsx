@@ -28,7 +28,13 @@ import {
 import { UserTags } from "@/components/admin/user-tags";
 import type { ClerkUserInfo } from "@/actions/admin/impersonate";
 import { format } from "date-fns";
-import { Pencil, Trash2, Search, Filter, X } from "lucide-react";
+import { Pencil, Trash2, Search, Filter, X, CreditCard } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Props = {
   users: ClerkUserInfo[];
@@ -132,6 +138,7 @@ export function UsersTable({ users, allTags, currentClerkUserId, isAdmin = false
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Tags</TableHead>
+              <TableHead>Stripe</TableHead>
               <TableHead>Linked Clients</TableHead>
               <TableHead>Last Sign In</TableHead>
               <TableHead className="w-[200px]">Actions</TableHead>
@@ -141,7 +148,7 @@ export function UsersTable({ users, allTags, currentClerkUserId, isAdmin = false
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="text-center text-muted-foreground py-8"
                 >
                   No users found.
@@ -180,6 +187,20 @@ export function UsersTable({ users, allTags, currentClerkUserId, isAdmin = false
                       tags={user.tags}
                       allTags={allTags}
                     />
+                  </TableCell>
+                  <TableCell>
+                    {user.isStripeCustomer ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <CreditCard className="h-4 w-4 text-orange-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>Stripe customer</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {user.linkedClients.length > 0 ? (

@@ -1,7 +1,8 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
-import { WebhookEvent } from "@clerk/nextjs/server";
+import { clerkClient, WebhookEvent } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { isStripeCustomer } from "@/lib/stripe";
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
@@ -56,6 +57,18 @@ export async function POST(req: Request) {
 
     if (result.count > 0) {
       console.log(`Clerk webhook: updated ${result.count} contact(s) for ${email}`);
+    }
+
+    // Check if this email is a Stripe customer and store in metadata
+    if (eventType === "user.created") {
+      const stripeCustomer = await isStripeCustomer(email);
+      if (stripeCustomer) {
+        const clerk = await clerkClient();
+        await clerk.users.updateUserMetadata(id, {
+          publicMetadata: { isStripeCustomer: true },
+        });
+        console.log(`Clerk webhook: flagged ${email} as Stripe customer`);
+      }
     }
   }
 
