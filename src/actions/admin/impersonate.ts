@@ -47,20 +47,25 @@ export type ClerkUserInfo = {
   isStripeCustomer: boolean;
 };
 
-async function getStripeCustomerEmails(): Promise<Set<string>> {
+async function getActiveSubscriptionEmails(): Promise<Set<string>> {
   if (!stripeConfigured()) return new Set();
 
   const emails = new Set<string>();
   let startingAfter: string | undefined;
 
   for (;;) {
-    const page = await stripe.customers.list({
+    const page = await stripe.subscriptions.list({
+      status: "active",
       limit: 100,
+      expand: ["data.customer"],
       ...(startingAfter ? { starting_after: startingAfter } : {}),
     });
 
-    for (const cust of page.data) {
-      if (cust.email) emails.add(cust.email.toLowerCase());
+    for (const sub of page.data) {
+      const customer = sub.customer;
+      if (typeof customer === "object" && "email" in customer && customer.email) {
+        emails.add(customer.email.toLowerCase());
+      }
     }
 
     if (!page.has_more) break;
@@ -89,7 +94,7 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
         client: { select: { id: true, name: true } },
       },
     }),
-    getStripeCustomerEmails(),
+    getActiveSubscriptionEmails(),
   ]);
 
   // Group by clerkUserId
