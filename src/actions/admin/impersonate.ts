@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { stripe, isConfigured as stripeConfigured } from "@/lib/stripe";
 import { clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -43,7 +44,31 @@ export type ClerkUserInfo = {
   imageUrl: string;
   lastSignInAt: number | null;
   linkedClients: { id: string; name: string }[];
+  isStripeCustomer: boolean;
 };
+
+async function getStripeCustomerEmails(): Promise<Set<string>> {
+  if (!stripeConfigured()) return new Set();
+
+  const emails = new Set<string>();
+  let startingAfter: string | undefined;
+
+  for (;;) {
+    const page = await stripe.customers.list({
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+
+    for (const cust of page.data) {
+      if (cust.email) emails.add(cust.email.toLowerCase());
+    }
+
+    if (!page.has_more) break;
+    startingAfter = page.data[page.data.length - 1].id;
+  }
+
+  return emails;
+}
 
 export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
   await requireStaff();
@@ -54,15 +79,18 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
     orderBy: "-last_sign_in_at",
   });
 
-  // Batch-fetch all client contacts with client names
+  // Batch-fetch client contacts and Stripe emails in parallel
   const clerkIds = users.map((u) => u.id);
-  const contacts = await prisma.clientContact.findMany({
-    where: { clerkUserId: { in: clerkIds }, isActive: true },
-    select: {
-      clerkUserId: true,
-      client: { select: { id: true, name: true } },
-    },
-  });
+  const [contacts, stripeEmails] = await Promise.all([
+    prisma.clientContact.findMany({
+      where: { clerkUserId: { in: clerkIds }, isActive: true },
+      select: {
+        clerkUserId: true,
+        client: { select: { id: true, name: true } },
+      },
+    }),
+    getStripeCustomerEmails(),
+  ]);
 
   // Group by clerkUserId
   const contactsByUser = new Map<string, { id: string; name: string }[]>();
@@ -78,15 +106,17 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
     // Normalize legacy "employee" metadata to "team_member"
     const role = rawRole === "employee" ? "team_member" : rawRole;
     const tags = Array.isArray(meta?.tags) ? (meta.tags as string[]) : [];
+    const email = u.emailAddresses[0]?.emailAddress ?? "";
     return {
       id: u.id,
-      email: u.emailAddresses[0]?.emailAddress ?? "",
-      name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || (u.emailAddresses[0]?.emailAddress ?? "Unknown"),
+      email,
+      name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || (email || "Unknown"),
       role,
       tags,
       imageUrl: u.imageUrl,
       lastSignInAt: u.lastSignInAt,
       linkedClients: contactsByUser.get(u.id) ?? [],
+      isStripeCustomer: stripeEmails.has(email.toLowerCase()),
     };
   });
 }
