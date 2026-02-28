@@ -1,17 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import type { ClerkUserInfo } from "@/actions/admin/impersonate";
 import { setUserTags } from "@/actions/admin/impersonate";
 import {
   createUser,
   updateUser,
 } from "@/actions/admin/users";
+import {
+  addClientContact,
+  updateClientContact,
+  removeClientContact,
+  listAllClients,
+} from "@/actions/admin/contacts";
+import { ALL_PERMISSIONS, PERMISSION_LABELS, type ContactPermission } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -166,6 +174,89 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
   const [tags, setTags] = useState<string[]>(user.tags);
   const [tagInput, setTagInput] = useState("");
 
+  // ── Client Access state ──────────────────────────────────────────
+  const [clientLinks, setClientLinks] = useState(user.linkedClients);
+  const [availableClients, setAvailableClients] = useState<{ id: string; name: string }[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+
+  async function loadAvailableClients() {
+    setClientsLoading(true);
+    const result = await listAllClients();
+    if (result.success) {
+      const linkedIds = new Set(clientLinks.map((l) => l.clientId));
+      setAvailableClients(result.data.filter((c) => !linkedIds.has(c.id)));
+    }
+    setClientsLoading(false);
+  }
+
+  // Re-sync clientLinks when the user prop changes (e.g. after revalidation)
+  useEffect(() => {
+    setClientLinks(user.linkedClients);
+  }, [user.linkedClients]);
+
+  async function handleAddClient(clientId: string) {
+    const client = availableClients.find((c) => c.id === clientId);
+    if (!client) return;
+
+    const result = await addClientContact(clientId, {
+      clerkUserId: user.id,
+      roleLabel: undefined,
+      canDashboard: true,
+      canBilling: true,
+      canAnalytics: true,
+      canUptime: true,
+      canSupport: true,
+      canSiteHealth: true,
+    });
+
+    if (result.success) {
+      setClientLinks((prev) => [
+        ...prev,
+        {
+          contactId: result.data.id,
+          clientId: client.id,
+          clientName: client.name,
+          roleLabel: null,
+          canDashboard: true,
+          canBilling: true,
+          canAnalytics: true,
+          canUptime: true,
+          canSupport: true,
+          canSiteHealth: true,
+        },
+      ]);
+      setAvailableClients((prev) => prev.filter((c) => c.id !== clientId));
+      toast.success(`Linked to ${client.name}`);
+    } else {
+      toast.error(result.error);
+    }
+  }
+
+  async function handleRemoveClient(contactId: string) {
+    const link = clientLinks.find((l) => l.contactId === contactId);
+    const result = await removeClientContact(contactId);
+    if (result.success) {
+      setClientLinks((prev) => prev.filter((l) => l.contactId !== contactId));
+      if (link) {
+        setAvailableClients((prev) =>
+          [...prev, { id: link.clientId, name: link.clientName }].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          )
+        );
+      }
+      toast.success("Client link removed");
+    } else {
+      toast.error(result.error);
+    }
+  }
+
+  async function handleUpdateContact(contactId: string, values: Record<string, unknown>) {
+    const result = await updateClientContact(contactId, values);
+    if (!result.success) {
+      toast.error(result.error);
+    }
+  }
+
   function addTag() {
     const tag = tagInput.trim();
     if (tag && !tags.includes(tag)) {
@@ -179,9 +270,17 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (isOpen) {
+          loadAvailableClients();
+        }
+      }}
+    >
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -215,7 +314,7 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[80vh] overflow-y-auto">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="eu-first">First Name *</Label>
@@ -296,6 +395,85 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* ── Client Access ── */}
+            <div className="space-y-3">
+              <Label>Client Access</Label>
+
+              {/* List of linked clients */}
+              {clientLinks.map((link) => (
+                <div key={link.contactId} className="rounded-md border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">{link.clientName}</p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemoveClient(link.contactId)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="Role label (e.g. Developer)"
+                      defaultValue={link.roleLabel ?? ""}
+                      className="h-8 text-sm"
+                      onBlur={(e) =>
+                        handleUpdateContact(link.contactId, { roleLabel: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {ALL_PERMISSIONS.map((perm) => {
+                      const key = `can${perm.charAt(0).toUpperCase() + perm.slice(1)}` as keyof typeof link;
+                      return (
+                        <label key={perm} className="flex items-center gap-1.5 text-xs">
+                          <Checkbox
+                            checked={link[key] as boolean}
+                            onCheckedChange={(checked) => {
+                              handleUpdateContact(link.contactId, { [key]: !!checked });
+                              setClientLinks((prev) =>
+                                prev.map((l) =>
+                                  l.contactId === link.contactId
+                                    ? { ...l, [key]: !!checked }
+                                    : l
+                                )
+                              );
+                            }}
+                          />
+                          {PERMISSION_LABELS[perm]}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Add client picker */}
+              <div className="flex gap-2">
+                <Select onValueChange={handleAddClient}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Link a client..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableClients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                    {availableClients.length === 0 && (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        {clientsLoading ? "Loading..." : "No clients available"}
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

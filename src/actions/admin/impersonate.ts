@@ -44,7 +44,18 @@ export type ClerkUserInfo = {
   tags: string[];
   imageUrl: string;
   lastSignInAt: number | null;
-  linkedClients: { id: string; name: string }[];
+  linkedClients: {
+    contactId: string;
+    clientId: string;
+    clientName: string;
+    roleLabel: string | null;
+    canDashboard: boolean;
+    canBilling: boolean;
+    canAnalytics: boolean;
+    canUptime: boolean;
+    canSupport: boolean;
+    canSiteHealth: boolean;
+  }[];
   isStripeCustomer: boolean;
 };
 
@@ -99,7 +110,15 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
     prisma.clientContact.findMany({
       where: { clerkUserId: { in: clerkIds }, isActive: true },
       select: {
+        id: true,
         clerkUserId: true,
+        roleLabel: true,
+        canDashboard: true,
+        canBilling: true,
+        canAnalytics: true,
+        canUptime: true,
+        canSupport: true,
+        canSiteHealth: true,
         client: { select: { id: true, name: true } },
       },
     }),
@@ -107,10 +126,22 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
   ]);
 
   // Group by clerkUserId
-  const contactsByUser = new Map<string, { id: string; name: string }[]>();
+  type LinkedClient = ClerkUserInfo["linkedClients"][number];
+  const contactsByUser = new Map<string, LinkedClient[]>();
   for (const c of contacts) {
     const list = contactsByUser.get(c.clerkUserId) ?? [];
-    list.push({ id: c.client.id, name: c.client.name });
+    list.push({
+      contactId: c.id,
+      clientId: c.client.id,
+      clientName: c.client.name,
+      roleLabel: c.roleLabel,
+      canDashboard: c.canDashboard,
+      canBilling: c.canBilling,
+      canAnalytics: c.canAnalytics,
+      canUptime: c.canUptime,
+      canSupport: c.canSupport,
+      canSiteHealth: c.canSiteHealth,
+    });
     contactsByUser.set(c.clerkUserId, list);
   }
 

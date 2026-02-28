@@ -89,6 +89,7 @@ export async function addClientContact(
     });
 
     revalidatePath(`/admin/clients/${clientId}`);
+    revalidatePath("/admin/users");
     return { success: true, data: contact };
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unique constraint")) {
@@ -130,6 +131,7 @@ export async function updateClientContact(
     });
 
     revalidatePath(`/admin/clients/${contact.clientId}`);
+    revalidatePath("/admin/users");
     return { success: true, data: contact };
   } catch (error) {
     return {
@@ -150,11 +152,29 @@ export async function removeClientContact(
     });
 
     revalidatePath(`/admin/clients/${contact.clientId}`);
+    revalidatePath("/admin/users");
     return { success: true, data: null };
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to remove contact",
+    };
+  }
+}
+
+export async function listAllClients(): Promise<ActionResult<{ id: string; name: string }[]>> {
+  try {
+    await requireStaff();
+    const clients = await prisma.client.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+    return { success: true, data: clients };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to list clients",
     };
   }
 }

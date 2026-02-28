@@ -177,8 +177,8 @@ export function getUserColumns(opts: ColumnOptions): ColumnDef<ClerkUserInfo>[] 
         return (
           <div className="flex flex-wrap gap-1">
             {clients.map((c) => (
-              <Badge key={c.id} variant="secondary" className="text-xs">
-                {c.name}
+              <Badge key={c.clientId} variant="secondary" className="text-xs">
+                {c.clientName}
               </Badge>
             ))}
           </div>
