@@ -10,13 +10,16 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { runSiteCheck } from "@/lib/site-checks";
 
-export async function getClients(includeArchived = false): Promise<ActionResult<ClientWithServices[]>> {
+export async function getClients(includeArchived = false): Promise<ActionResult<(ClientWithServices & { _count: { contacts: number } })[]>> {
   try {
     await requireStaff();
     const clients = await prisma.client.findMany({
       where: includeArchived ? {} : { isActive: true },
       orderBy: { createdAt: "desc" },
-      include: { services: true },
+      include: {
+        services: true,
+        _count: { select: { contacts: true } },
+      },
     });
     return { success: true, data: clients };
   } catch (error) {

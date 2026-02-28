@@ -1,4 +1,4 @@
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, getRealAuthUser } from "@/lib/auth";
 import { getClients } from "@/actions/admin/clients";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ interface PageProps {
 
 export default async function AdminClientsPage({ searchParams }: PageProps) {
   await requireStaff();
+  const currentUser = await getRealAuthUser();
   const params = await searchParams;
   const showArchived = params.archived === "true";
   const result = await getClients(showArchived);
@@ -48,7 +49,7 @@ export default async function AdminClientsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      <ClientsTable clients={clients} />
+      <ClientsTable clients={clients} isAdmin={currentUser?.isAdmin ?? false} />
     </div>
   );
 }
