@@ -40,6 +40,7 @@ export type ClerkUserInfo = {
   email: string;
   name: string;
   role: string;
+  status: "active" | "suspended";
   tags: string[];
   imageUrl: string;
   lastSignInAt: number | null;
@@ -125,6 +126,7 @@ export async function listClerkUsers(): Promise<ClerkUserInfo[]> {
       email,
       name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || (email || "Unknown"),
       role,
+      status: (meta?.status as string) === "suspended" ? "suspended" : "active",
       tags,
       imageUrl: u.imageUrl,
       lastSignInAt: u.lastSignInAt,

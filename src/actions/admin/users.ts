@@ -130,6 +130,42 @@ export async function updateUser(
   }
 }
 
+export async function setUserStatus(
+  clerkUserId: string,
+  status: "active" | "suspended"
+): Promise<ActionResult<null>> {
+  try {
+    await requireStaff();
+    const currentUser = await getAuthUser();
+
+    if (clerkUserId === currentUser?.clerkUserId) {
+      return { success: false, error: "You cannot change your own status" };
+    }
+
+    const clerk = await clerkClient();
+
+    if (status === "suspended") {
+      await clerk.users.banUser(clerkUserId);
+      await clerk.users.updateUserMetadata(clerkUserId, {
+        publicMetadata: { status: "suspended" },
+      });
+    } else {
+      await clerk.users.unbanUser(clerkUserId);
+      await clerk.users.updateUserMetadata(clerkUserId, {
+        publicMetadata: { status: undefined },
+      });
+    }
+
+    revalidatePath("/admin/users");
+    return { success: true, data: null };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update status",
+    };
+  }
+}
+
 export async function deleteUser(
   clerkUserId: string
 ): Promise<ActionResult<null>> {
