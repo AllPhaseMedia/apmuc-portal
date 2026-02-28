@@ -3,13 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import type { ClerkUserInfo } from "@/actions/admin/impersonate";
 import { setUserTags } from "@/actions/admin/impersonate";
 import {
   createUser,
   updateUser,
-  deleteUser,
 } from "@/actions/admin/users";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,17 +30,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 const ROLE_OPTIONS = [
   { value: "client", label: "Client" },
@@ -329,56 +317,3 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
   );
 }
 
-// ── Delete User Button ──────────────────────────────────────────────
-
-type DeleteUserButtonProps = {
-  userId: string;
-  userName: string;
-  children: React.ReactNode;
-};
-
-export function DeleteUserButton({
-  userId,
-  userName,
-  children,
-}: DeleteUserButtonProps) {
-  const [deleting, setDeleting] = useState(false);
-  const router = useRouter();
-
-  const handleDelete = async () => {
-    setDeleting(true);
-    const result = await deleteUser(userId);
-    setDeleting(false);
-
-    if (result.success) {
-      toast.success("User deleted");
-      router.refresh();
-    } else {
-      toast.error(result.error);
-    }
-  };
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete &quot;{userName}&quot;?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete the user account and remove all their
-            portal client links. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} disabled={deleting}>
-            {deleting && (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            )}
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
