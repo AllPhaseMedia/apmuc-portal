@@ -276,6 +276,9 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
         setOpen(isOpen);
         if (isOpen) {
           loadAvailableClients();
+        } else {
+          // Refresh table data after dialog closes (client links may have changed)
+          router.refresh();
         }
       }}
     >

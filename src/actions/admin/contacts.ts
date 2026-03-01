@@ -89,7 +89,6 @@ export async function addClientContact(
     });
 
     revalidatePath(`/admin/clients/${clientId}`);
-    revalidatePath("/admin/users");
     return { success: true, data: contact };
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unique constraint")) {
@@ -131,7 +130,6 @@ export async function updateClientContact(
     });
 
     revalidatePath(`/admin/clients/${contact.clientId}`);
-    revalidatePath("/admin/users");
     return { success: true, data: contact };
   } catch (error) {
     return {
@@ -152,7 +150,6 @@ export async function removeClientContact(
     });
 
     revalidatePath(`/admin/clients/${contact.clientId}`);
-    revalidatePath("/admin/users");
     return { success: true, data: null };
   } catch (error) {
     return {
