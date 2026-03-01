@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import {
   resolveAudience,
   sendCampaign,
+  listAllUsers,
 } from "@/actions/admin/email-campaigns";
 import type {
   AudienceFilters,
@@ -52,8 +53,23 @@ export function EmailCompose({ allTags }: Props) {
   const [audienceLoading, setAudienceLoading] = useState(false);
   const [audienceResolved, setAudienceResolved] = useState(false);
 
-  const finalRecipients = recipients.filter((r) => !excluded.has(r.email));
-  const hasRecipients = audienceResolved && finalRecipients.length > 0;
+  // Manual add state
+  const [manualAdds, setManualAdds] = useState<Recipient[]>([]);
+  const [allUsers, setAllUsers] = useState<Recipient[]>([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+
+  // Merge filter-resolved recipients with manual adds (dedup by email)
+  const mergedRecipients = (() => {
+    const map = new Map<string, Recipient>();
+    for (const r of recipients) map.set(r.email, r);
+    for (const r of manualAdds) map.set(r.email, r);
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  })();
+  const finalRecipients = mergedRecipients.filter((r) => !excluded.has(r.email));
+  const hasRecipients = (audienceResolved || manualAdds.length > 0) && finalRecipients.length > 0;
   const canCompose = hasRecipients;
   const canSend =
     hasRecipients && subject.trim().length > 0 && body.trim().length > 0;
@@ -103,6 +119,40 @@ export function EmailCompose({ allTags }: Props) {
     setAudienceResolved(false);
   }
 
+  // ---- Manual Add ----
+
+  async function loadUsers() {
+    if (usersLoaded) return;
+    setUsersLoading(true);
+    const result = await listAllUsers();
+    if (result.success) {
+      setAllUsers(result.data);
+      setUsersLoaded(true);
+    }
+    setUsersLoading(false);
+  }
+
+  function handleManualAdd(user: Recipient) {
+    if (!manualAdds.some((r) => r.email === user.email)) {
+      setManualAdds((prev) => [...prev, user]);
+    }
+    setUserSearch("");
+    setShowUserDropdown(false);
+  }
+
+  function handleManualRemove(email: string) {
+    setManualAdds((prev) => prev.filter((r) => r.email !== email));
+  }
+
+  const filteredUsers = userSearch.trim().length > 0
+    ? allUsers.filter(
+        (u) =>
+          !manualAdds.some((m) => m.email === u.email) &&
+          (u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+            u.email.toLowerCase().includes(userSearch.toLowerCase()))
+      ).slice(0, 10)
+    : [];
+
   // ---- Actions ----
 
   async function handleResolveAudience() {
@@ -150,6 +200,7 @@ export function EmailCompose({ allTags }: Props) {
         // Reset all state
         setFilters(defaultFilters);
         setRecipients([]);
+        setManualAdds([]);
         setExcluded(new Set());
         setSubject("");
         setBody("");
@@ -260,34 +311,99 @@ export function EmailCompose({ allTags }: Props) {
             Resolve Audience
           </Button>
 
-          {/* Recipient List */}
-          {audienceResolved && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {finalRecipients.length} of {recipients.length} recipient
-                {recipients.length === 1 ? "" : "s"} selected
-              </p>
-              {recipients.length > 0 && (
-                <div className="max-h-60 overflow-y-auto rounded-md border p-3">
-                  <div className="space-y-2">
-                    {recipients.map((r) => (
-                      <label
-                        key={r.email}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        <Checkbox
-                          checked={!excluded.has(r.email)}
-                          onCheckedChange={() => toggleRecipient(r.email)}
-                        />
-                        <span className="font-medium">{r.name}</span>
-                        <span className="text-muted-foreground">
-                          ({r.email})
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+          {/* Manual Add Users */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Add Individual Users</Label>
+            <div className="relative">
+              <Input
+                placeholder="Search users by name or email..."
+                value={userSearch}
+                onFocus={() => {
+                  loadUsers();
+                  setShowUserDropdown(true);
+                }}
+                onBlur={() => {
+                  // Delay to allow click on dropdown item
+                  setTimeout(() => setShowUserDropdown(false), 200);
+                }}
+                onChange={(e) => {
+                  setUserSearch(e.target.value);
+                  setShowUserDropdown(true);
+                }}
+              />
+              {showUserDropdown && userSearch.trim().length > 0 && (
+                <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md">
+                  {usersLoading ? (
+                    <div className="p-3 text-sm text-muted-foreground">Loading users...</div>
+                  ) : filteredUsers.length > 0 ? (
+                    <div className="max-h-48 overflow-y-auto p-1">
+                      {filteredUsers.map((u) => (
+                        <button
+                          key={u.email}
+                          type="button"
+                          className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-accent"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleManualAdd(u)}
+                        >
+                          <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium">{u.name}</span>
+                          <span className="text-muted-foreground">{u.email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 text-sm text-muted-foreground">No users found</div>
+                  )}
                 </div>
               )}
+            </div>
+            {manualAdds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {manualAdds.map((r) => (
+                  <span
+                    key={r.email}
+                    className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs"
+                  >
+                    {r.name}
+                    <button
+                      type="button"
+                      onClick={() => handleManualRemove(r.email)}
+                      className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recipient List */}
+          {(audienceResolved || manualAdds.length > 0) && mergedRecipients.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {finalRecipients.length} of {mergedRecipients.length} recipient
+                {mergedRecipients.length === 1 ? "" : "s"} selected
+              </p>
+              <div className="max-h-60 overflow-y-auto rounded-md border p-3">
+                <div className="space-y-2">
+                  {mergedRecipients.map((r) => (
+                    <label
+                      key={r.email}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <Checkbox
+                        checked={!excluded.has(r.email)}
+                        onCheckedChange={() => toggleRecipient(r.email)}
+                      />
+                      <span className="font-medium">{r.name}</span>
+                      <span className="text-muted-foreground">
+                        ({r.email})
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

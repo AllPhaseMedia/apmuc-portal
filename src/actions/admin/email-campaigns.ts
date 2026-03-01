@@ -178,6 +178,48 @@ export async function resolveAudience(
 }
 
 // ============================================================
+// 1b. listAllUsers (for manual recipient selection)
+// ============================================================
+
+export async function listAllUsers(): Promise<ActionResult<Recipient[]>> {
+  try {
+    await requireStaff();
+
+    const clerk = await clerkClient();
+    const users: Recipient[] = [];
+    let offset = 0;
+
+    for (;;) {
+      const { data } = await clerk.users.getUserList({
+        limit: 100,
+        orderBy: "-last_sign_in_at",
+        offset,
+      });
+
+      for (const u of data) {
+        const email = u.emailAddresses[0]?.emailAddress;
+        if (!email) continue;
+        const name =
+          `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || email;
+        users.push({ email: email.toLowerCase(), name });
+      }
+
+      if (data.length < 100) break;
+      offset += 100;
+    }
+
+    users.sort((a, b) => a.name.localeCompare(b.name));
+    return { success: true, data: users };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to list users",
+    };
+  }
+}
+
+// ============================================================
 // 2. sendCampaign
 // ============================================================
 
