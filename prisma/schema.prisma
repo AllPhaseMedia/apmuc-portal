@@ -284,6 +284,8 @@ model EmailCampaign {
   recipientCount Int
   createdAt      DateTime         @default(now())
   recipients     EmailRecipient[]
+
+  @@index([sentAt])
 }
 
 model EmailRecipient {
@@ -295,4 +297,5 @@ model EmailRecipient {
   campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
+  @@index([email])
 }
