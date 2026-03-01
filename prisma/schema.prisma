@@ -269,3 +269,30 @@ model CustomPage {
   @@index([slug])
   @@index([isPublished])
 }
+
+// ============================================================
+// EMAIL CAMPAIGNS
+// ============================================================
+
+model EmailCampaign {
+  id             String           @id @default(uuid())
+  subject        String
+  body           String           @db.Text
+  sentByUserId   String
+  sentByName     String
+  sentAt         DateTime         @default(now())
+  recipientCount Int
+  createdAt      DateTime         @default(now())
+  recipients     EmailRecipient[]
+}
+
+model EmailRecipient {
+  id         String        @id @default(uuid())
+  campaignId String
+  email      String
+  name       String
+  status     String        @default("sent")
+  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+}
