@@ -175,7 +175,9 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
   const [tagInput, setTagInput] = useState("");
 
   // ── Client Access state ──────────────────────────────────────────
+  // "new:" prefix on contactId means it hasn't been saved yet
   const [clientLinks, setClientLinks] = useState(user.linkedClients);
+  const [removedContactIds, setRemovedContactIds] = useState<string[]>([]);
   const [availableClients, setAvailableClients] = useState<{ id: string; name: string }[]>([]);
   const [clientsLoading, setClientsLoading] = useState(false);
 
@@ -194,67 +196,51 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
     setClientLinks(user.linkedClients);
   }, [user.linkedClients]);
 
-  async function handleAddClient(clientId: string) {
+  // All changes are local-only until the user clicks "Update"
+  function handleAddClient(clientId: string) {
     const client = availableClients.find((c) => c.id === clientId);
     if (!client) return;
 
-    const result = await addClientContact(clientId, {
-      clerkUserId: user.id,
-      roleLabel: undefined,
-      canDashboard: true,
-      canBilling: true,
-      canAnalytics: true,
-      canUptime: true,
-      canSupport: true,
-      canSiteHealth: true,
-    });
-
-    if (result.success) {
-      setClientLinks((prev) => [
-        ...prev,
-        {
-          contactId: result.data.id,
-          clientId: client.id,
-          clientName: client.name,
-          roleLabel: null,
-          canDashboard: true,
-          canBilling: true,
-          canAnalytics: true,
-          canUptime: true,
-          canSupport: true,
-          canSiteHealth: true,
-        },
-      ]);
-      setAvailableClients((prev) => prev.filter((c) => c.id !== clientId));
-      toast.success(`Linked to ${client.name}`);
-    } else {
-      toast.error(result.error);
-    }
+    setClientLinks((prev) => [
+      ...prev,
+      {
+        contactId: `new:${clientId}`,
+        clientId: client.id,
+        clientName: client.name,
+        roleLabel: null,
+        canDashboard: true,
+        canBilling: true,
+        canAnalytics: true,
+        canUptime: true,
+        canSupport: true,
+        canSiteHealth: true,
+      },
+    ]);
+    setAvailableClients((prev) => prev.filter((c) => c.id !== clientId));
   }
 
-  async function handleRemoveClient(contactId: string) {
+  function handleRemoveClient(contactId: string) {
     const link = clientLinks.find((l) => l.contactId === contactId);
-    const result = await removeClientContact(contactId);
-    if (result.success) {
-      setClientLinks((prev) => prev.filter((l) => l.contactId !== contactId));
-      if (link) {
-        setAvailableClients((prev) =>
-          [...prev, { id: link.clientId, name: link.clientName }].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          )
-        );
-      }
-      toast.success("Client link removed");
-    } else {
-      toast.error(result.error);
+    setClientLinks((prev) => prev.filter((l) => l.contactId !== contactId));
+    // Track existing links that need server-side deletion
+    if (!contactId.startsWith("new:")) {
+      setRemovedContactIds((prev) => [...prev, contactId]);
+    }
+    if (link) {
+      setAvailableClients((prev) =>
+        [...prev, { id: link.clientId, name: link.clientName }].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        )
+      );
     }
   }
 
-  async function handleUpdateContact(contactId: string, values: Record<string, unknown>) {
-    const result = await updateClientContact(contactId, values);
-    if (!result.success) {
-      toast.error(result.error);
-    }
+  function handleUpdateContact(contactId: string, key: string, value: unknown) {
+    setClientLinks((prev) =>
+      prev.map((l) =>
+        l.contactId === contactId ? { ...l, [key]: value } : l
+      )
+    );
   }
 
   function addTag() {
@@ -290,6 +276,71 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
             setLoading(true);
 
             const fd = new FormData(e.currentTarget);
+
+            // 1. Save new client links
+            const newLinks = clientLinks.filter((l) => l.contactId.startsWith("new:"));
+            const addResults = await Promise.all(
+              newLinks.map((l) =>
+                addClientContact(l.clientId, {
+                  clerkUserId: user.id,
+                  roleLabel: l.roleLabel ?? undefined,
+                  canDashboard: l.canDashboard,
+                  canBilling: l.canBilling,
+                  canAnalytics: l.canAnalytics,
+                  canUptime: l.canUptime,
+                  canSupport: l.canSupport,
+                  canSiteHealth: l.canSiteHealth,
+                })
+              )
+            );
+            const addFailed = addResults.find((r) => !r.success);
+            if (addFailed && !addFailed.success) {
+              toast.error(addFailed.error);
+              setLoading(false);
+              return;
+            }
+
+            // 2. Update existing client links (permissions/role label changes)
+            const existingLinks = clientLinks.filter(
+              (l) => !l.contactId.startsWith("new:")
+            );
+            const originalMap = new Map(
+              user.linkedClients.map((l) => [l.contactId, l])
+            );
+            await Promise.all(
+              existingLinks
+                .filter((l) => {
+                  const orig = originalMap.get(l.contactId);
+                  if (!orig) return false;
+                  return (
+                    orig.roleLabel !== l.roleLabel ||
+                    orig.canDashboard !== l.canDashboard ||
+                    orig.canBilling !== l.canBilling ||
+                    orig.canAnalytics !== l.canAnalytics ||
+                    orig.canUptime !== l.canUptime ||
+                    orig.canSupport !== l.canSupport ||
+                    orig.canSiteHealth !== l.canSiteHealth
+                  );
+                })
+                .map((l) =>
+                  updateClientContact(l.contactId, {
+                    roleLabel: l.roleLabel ?? undefined,
+                    canDashboard: l.canDashboard,
+                    canBilling: l.canBilling,
+                    canAnalytics: l.canAnalytics,
+                    canUptime: l.canUptime,
+                    canSupport: l.canSupport,
+                    canSiteHealth: l.canSiteHealth,
+                  })
+                )
+            );
+
+            // 3. Remove deleted links
+            await Promise.all(
+              removedContactIds.map((id) => removeClientContact(id))
+            );
+
+            // 4. Save user details + tags
             const [result] = await Promise.all([
               updateUser(user.id, {
                 firstName: fd.get("firstName") as string,
@@ -307,6 +358,7 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
               toast.error(result.error);
             }
             setLoading(false);
+            setRemovedContactIds([]);
           }}
         >
           <DialogHeader>
@@ -427,7 +479,7 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
                       defaultValue={link.roleLabel ?? ""}
                       className="h-8 text-sm"
                       onBlur={(e) =>
-                        handleUpdateContact(link.contactId, { roleLabel: e.target.value })
+                        handleUpdateContact(link.contactId, "roleLabel", e.target.value)
                       }
                     />
                   </div>
@@ -439,14 +491,7 @@ export function EditUserDialog({ user, children, isAdmin = false }: EditUserDial
                           <Checkbox
                             checked={link[key] as boolean}
                             onCheckedChange={(checked) => {
-                              handleUpdateContact(link.contactId, { [key]: !!checked });
-                              setClientLinks((prev) =>
-                                prev.map((l) =>
-                                  l.contactId === link.contactId
-                                    ? { ...l, [key]: !!checked }
-                                    : l
-                                )
-                              );
+                              handleUpdateContact(link.contactId, key, !!checked);
                             }}
                           />
                           {PERMISSION_LABELS[perm]}
