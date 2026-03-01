@@ -24,7 +24,7 @@ export type AudienceFilters = {
   roles: string[]; // "admin", "team_member", "client"
 };
 
-export type Recipient = { email: string; name: string };
+export type Recipient = { email: string; name: string; clients?: string[] };
 
 export type CampaignSummary = {
   id: string;
@@ -186,7 +186,7 @@ export async function listAllUsers(): Promise<ActionResult<Recipient[]>> {
     await requireStaff();
 
     const clerk = await clerkClient();
-    const users: Recipient[] = [];
+    const clerkUsers: { id: string; email: string; name: string }[] = [];
     let offset = 0;
 
     for (;;) {
@@ -201,12 +201,37 @@ export async function listAllUsers(): Promise<ActionResult<Recipient[]>> {
         if (!email) continue;
         const name =
           `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || email;
-        users.push({ email: email.toLowerCase(), name });
+        clerkUsers.push({ id: u.id, email: email.toLowerCase(), name });
       }
 
       if (data.length < 100) break;
       offset += 100;
     }
+
+    // Batch-fetch client links for all users
+    const contacts = await prisma.clientContact.findMany({
+      where: {
+        clerkUserId: { in: clerkUsers.map((u) => u.id) },
+        isActive: true,
+      },
+      select: {
+        clerkUserId: true,
+        client: { select: { name: true } },
+      },
+    });
+
+    const clientsByUser = new Map<string, string[]>();
+    for (const c of contacts) {
+      const list = clientsByUser.get(c.clerkUserId) ?? [];
+      list.push(c.client.name);
+      clientsByUser.set(c.clerkUserId, list);
+    }
+
+    const users: Recipient[] = clerkUsers.map((u) => ({
+      email: u.email,
+      name: u.name,
+      clients: clientsByUser.get(u.id) ?? [],
+    }));
 
     users.sort((a, b) => a.name.localeCompare(b.name));
     return { success: true, data: users };

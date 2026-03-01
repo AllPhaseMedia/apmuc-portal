@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Search, UserPlus } from "lucide-react";
 import {
   resolveAudience,
   sendCampaign,
@@ -17,6 +17,13 @@ import { RichEditor } from "@/components/admin/rich-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -53,13 +60,15 @@ export function EmailCompose({ allTags }: Props) {
   const [audienceLoading, setAudienceLoading] = useState(false);
   const [audienceResolved, setAudienceResolved] = useState(false);
 
-  // Manual add state
+  // User picker dialog state
   const [manualAdds, setManualAdds] = useState<Recipient[]>([]);
   const [allUsers, setAllUsers] = useState<Recipient[]>([]);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [userSearch, setUserSearch] = useState("");
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Track selected emails within the picker (committed on close)
+  const [pickerSelected, setPickerSelected] = useState<Set<string>>(new Set());
 
   // Merge filter-resolved recipients with manual adds (dedup by email)
   const mergedRecipients = (() => {
@@ -119,39 +128,49 @@ export function EmailCompose({ allTags }: Props) {
     setAudienceResolved(false);
   }
 
-  // ---- Manual Add ----
+  // ---- User Picker ----
 
-  async function loadUsers() {
-    if (usersLoaded) return;
-    setUsersLoading(true);
-    const result = await listAllUsers();
-    if (result.success) {
-      setAllUsers(result.data);
-      setUsersLoaded(true);
-    }
-    setUsersLoading(false);
-  }
-
-  function handleManualAdd(user: Recipient) {
-    if (!manualAdds.some((r) => r.email === user.email)) {
-      setManualAdds((prev) => [...prev, user]);
-    }
+  async function openPicker() {
+    setPickerOpen(true);
     setUserSearch("");
-    setShowUserDropdown(false);
+    // Initialize picker selection from current manual adds
+    setPickerSelected(new Set(manualAdds.map((r) => r.email)));
+    if (!usersLoaded) {
+      setUsersLoading(true);
+      const result = await listAllUsers();
+      if (result.success) {
+        setAllUsers(result.data);
+        setUsersLoaded(true);
+      }
+      setUsersLoading(false);
+    }
   }
 
-  function handleManualRemove(email: string) {
-    setManualAdds((prev) => prev.filter((r) => r.email !== email));
+  function togglePickerUser(email: string) {
+    setPickerSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(email)) next.delete(email);
+      else next.add(email);
+      return next;
+    });
   }
 
-  const filteredUsers = userSearch.trim().length > 0
+  function commitPickerSelection() {
+    const selected = allUsers.filter((u) => pickerSelected.has(u.email));
+    setManualAdds(selected);
+    setPickerOpen(false);
+  }
+
+  const filteredPickerUsers = userSearch.trim().length > 0
     ? allUsers.filter(
         (u) =>
-          !manualAdds.some((m) => m.email === u.email) &&
-          (u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-            u.email.toLowerCase().includes(userSearch.toLowerCase()))
-      ).slice(0, 10)
-    : [];
+          u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+          u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+          (u.clients ?? []).some((c) =>
+            c.toLowerCase().includes(userSearch.toLowerCase())
+          )
+      )
+    : allUsers;
 
   // ---- Actions ----
 
@@ -311,71 +330,116 @@ export function EmailCompose({ allTags }: Props) {
             Resolve Audience
           </Button>
 
-          {/* Manual Add Users */}
+          {/* Select Individual Users */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Add Individual Users</Label>
-            <div className="relative">
-              <Input
-                placeholder="Search users by name or email..."
-                value={userSearch}
-                onFocus={() => {
-                  loadUsers();
-                  setShowUserDropdown(true);
-                }}
-                onBlur={() => {
-                  // Delay to allow click on dropdown item
-                  setTimeout(() => setShowUserDropdown(false), 200);
-                }}
-                onChange={(e) => {
-                  setUserSearch(e.target.value);
-                  setShowUserDropdown(true);
-                }}
-              />
-              {showUserDropdown && userSearch.trim().length > 0 && (
-                <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md">
-                  {usersLoading ? (
-                    <div className="p-3 text-sm text-muted-foreground">Loading users...</div>
-                  ) : filteredUsers.length > 0 ? (
-                    <div className="max-h-48 overflow-y-auto p-1">
-                      {filteredUsers.map((u) => (
-                        <button
-                          key={u.email}
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-accent"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => handleManualAdd(u)}
-                        >
-                          <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="font-medium">{u.name}</span>
-                          <span className="text-muted-foreground">{u.email}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-3 text-sm text-muted-foreground">No users found</div>
-                  )}
-                </div>
+            <Label className="text-sm font-medium">Select Individual Users</Label>
+            <div className="flex items-center gap-3">
+              <Dialog open={pickerOpen} onOpenChange={(open) => {
+                if (!open) commitPickerSelection();
+                else openPicker();
+              }}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" size="sm">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Choose Users
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>
+                      Select Recipients ({pickerSelected.size} selected)
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, or client..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="flex-1 overflow-y-auto border rounded-md min-h-0">
+                    {usersLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        <span className="ml-2 text-sm text-muted-foreground">Loading users...</span>
+                      </div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="sticky top-0 bg-background border-b">
+                          <tr>
+                            <th className="w-10 p-3">
+                              <Checkbox
+                                checked={
+                                  filteredPickerUsers.length > 0 &&
+                                  filteredPickerUsers.every((u) => pickerSelected.has(u.email))
+                                }
+                                onCheckedChange={(checked) => {
+                                  setPickerSelected((prev) => {
+                                    const next = new Set(prev);
+                                    for (const u of filteredPickerUsers) {
+                                      if (checked) next.add(u.email);
+                                      else next.delete(u.email);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                              />
+                            </th>
+                            <th className="text-left p-3 font-medium">User</th>
+                            <th className="text-left p-3 font-medium">Client</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredPickerUsers.map((u) => (
+                            <tr
+                              key={u.email}
+                              className="border-b last:border-0 hover:bg-muted/50 cursor-pointer"
+                              onClick={() => togglePickerUser(u.email)}
+                            >
+                              <td className="p-3">
+                                <Checkbox
+                                  checked={pickerSelected.has(u.email)}
+                                  onCheckedChange={() => togglePickerUser(u.email)}
+                                />
+                              </td>
+                              <td className="p-3">
+                                <div className="font-medium">{u.name}</div>
+                                <div className="text-muted-foreground text-xs">{u.email}</div>
+                              </td>
+                              <td className="p-3 text-muted-foreground">
+                                {(u.clients ?? []).length > 0
+                                  ? (u.clients ?? []).join(", ")
+                                  : <span className="text-muted-foreground/50">&mdash;</span>
+                                }
+                              </td>
+                            </tr>
+                          ))}
+                          {filteredPickerUsers.length === 0 && (
+                            <tr>
+                              <td colSpan={3} className="p-6 text-center text-muted-foreground">
+                                No users found
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <Button type="button" onClick={commitPickerSelection}>
+                      Done ({pickerSelected.size} selected)
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              {manualAdds.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {manualAdds.length} user{manualAdds.length === 1 ? "" : "s"} selected
+                </span>
               )}
             </div>
-            {manualAdds.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {manualAdds.map((r) => (
-                  <span
-                    key={r.email}
-                    className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs"
-                  >
-                    {r.name}
-                    <button
-                      type="button"
-                      onClick={() => handleManualRemove(r.email)}
-                      className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Recipient List */}
