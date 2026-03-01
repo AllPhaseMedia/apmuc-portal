@@ -15,6 +15,7 @@ import {
   Settings,
   UserCog,
   StickyNote,
+  Mail,
   ExternalLink,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
@@ -50,6 +51,7 @@ const icons = {
   Settings,
   UserCog,
   StickyNote,
+  Mail,
 } as const;
 
 type NavItem = {
@@ -71,6 +73,7 @@ const staffNav = [
   { label: "Overview", href: "/admin", icon: "BarChart3" },
   { label: "Clients", href: "/admin/clients", icon: "Users" },
   { label: "Users", href: "/admin/users", icon: "UserCog" },
+  { label: "Email", href: "/admin/email", icon: "Mail" },
   { label: "Knowledge Base", href: "/admin/knowledge-base", icon: "FileText" },
   { label: "Services", href: "/admin/services", icon: "Package" },
   { label: "Forms", href: "/admin/forms", icon: "ClipboardList" },
