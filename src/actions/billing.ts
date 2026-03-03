@@ -39,9 +39,10 @@ export async function getBillingData() {
       data: { subscriptions, invoices, paymentMethods },
     };
   } catch (error) {
+    console.error("getBillingData error:", error);
     return {
       success: false as const,
-      error: error instanceof Error ? error.message : "Failed to load billing data",
+      error: "Failed to load billing data. Please try again later.",
     };
   }
 }
@@ -68,9 +69,10 @@ export async function createPortalSession(): Promise<ActionResult<string>> {
 
     return { success: true, data: session.url };
   } catch (error) {
+    console.error("createPortalSession error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to create portal session",
+      error: "Failed to create portal session. Please try again later.",
     };
   }
 }
